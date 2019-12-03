@@ -18,7 +18,7 @@ options(tigris_class = 'sf')
 apc <- readRDS('data/metro-transit/apc-interpolated.RDS')
 setDT(apc)
 
-apc <- apc[!date_key %like% 2017]
+apc <- apc[, year := year(ymd(date_key))]
 apc[, site_id := as.character(site_id)]
 
 # assign stops to block groups ------------------
@@ -38,23 +38,25 @@ bgs <- block_groups('MN', counties, year = 2016)
 bgs <- st_transform(bgs, 4326)
 
 apc[, site_id := as.character(site_id)]
-apc_loc <- left_join(stops, apc) # dplyr joins are usually easier with sf objects
-rm(apc) # just for space
+# apc_loc <- left_join(stops, apc) # dplyr joins are usually easier with sf objects
+# rm(apc) # just for space
+# 
+# # intersect stops and block groups
+# apc_bg <- st_join(apc_loc, bgs, st_intersects)
+# setDT(apc_bg)
+# 
+# # count bus stops
+# bc <- apc_bg[rail == 0, .(count_bus_stops = length(unique(site_id))), by = 'GEOID']
+# rc <- apc_bg[rail == 1, .(count_rail_stops = length(unique(site_id))), by = 'GEOID']
+# 
+# # save stops to block groups
+# names(apc_bg)
+# stop_to_bg <- apc_bg[, c('site_id', 'GEOID')]
+# 
+# stop_to_bg <- unique(stop_to_bg)
+# saveRDS(stop_to_bg, 'data/metro-transit/stops_to_bgs.RDS')
 
-# intersect stops and block groups
-apc_bg <- st_join(apc_loc, bgs, st_intersects)
-setDT(apc_bg)
-
-# count bus stops
-bc <- apc_bg[rail == 0, .(count_bus_stops = length(unique(site_id))), by = 'GEOID']
-rc <- apc_bg[rail == 1, .(count_rail_stops = length(unique(site_id))), by = 'GEOID']
-
-# save stops to block groups
-names(apc_bg)
-stop_to_bg <- apc_bg[, c('site_id', 'GEOID')]
-
-stop_to_bg <- unique(stop_to_bg)
-saveRDS(stop_to_bg, 'data/metro-transit/stops_to_bgs.RDS')
+stop_to_bg <- readRDS('data/metro-transit/stops_to_bgs.RDS')
 
 apc <- stop_to_bg[apc, on = 'site_id']
 

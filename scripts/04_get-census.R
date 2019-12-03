@@ -287,9 +287,7 @@ l[[1]]$year <- 2017
 l[[2]]$year <- 2016
 l[[3]]$year <- 2015
 
-
-# i think i'll mostly be interested in total number of jobs
-# too lazy to give better names rn
+# this whole section could be cleaned up considerably
 
 # aggregate blocks to bgs
 
@@ -302,9 +300,6 @@ for(i in 1:3){
   l[[i]] <- l[[i]][, lapply(.SD, sum, na.rm=TRUE), by= c('GEOID', 'year')]
 }
 
-# restrict to metro area
-options(tigris_use_cache = FALSE)
-bgs <- block_groups('MN', counties, year = 2016)
 
 for(i in 1:3){
   l[[i]] <- l[[i]][GEOID %in% bgs$GEOID]
