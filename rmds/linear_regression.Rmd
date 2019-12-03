@@ -1,0 +1,88 @@
+---
+title: "Linear Regression (TMAs)"
+author: "Raven McKnight"
+date: "12/3/2019"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+    theme: paper
+    code_folding: hide
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(data.table)
+library(tigris)
+library(ggplot2)
+library(leaps)
+
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+
+counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
+bgs <- block_groups("MN", counties, 2016)
+
+# should find better way to read data from rmd folder
+lm_dat <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/modeling-dat/lm_dat_logged.RDS')
+```
+
+# Introduction
+
+The simplest model we can fit is a linear regression. This model was inspired by Metro Transit's Transit Market Areas. Here, we'll let $Y_i$ equal the log of average number of weekday boardings per stop in census block group $i$ in 2017. We'll use four basic predictors, inspired by the original Transit Market Areas: population density, employment density, percent of households with no vehicle, and a walkability metric derived from walk isochrones. We also include number of stops made in block group $i$ as a control for level of service. 
+
+
+# The Model
+
+```{r}
+lm1 <- lm(log_daily_boards ~ pop_density + emp_density + walkability + perc_no_veh + log_daily_stops, lm_dat, na.action = na.exclude)
+
+summary(lm1)
+```
+
+I'm guessing population density is insignificant because it's so correlated with employment. 
+
+# Results
+## Transit Market Areas
+
+```{r}
+lm_dat[, index := -3.79 + 0.06*pop_density + 0.22*emp_density + 0.21*walkability + 0.19*perc_no_veh + 1.18*log_daily_stops]
+
+lm_dat[, predicted_boardings := exp(index)]
+
+lm_dat_sf <- dplyr::left_join(bgs, lm_dat)
+```
+
+We can use the model above to define updated Transit Market Areas based on the number of boardings a block group can support, rather than an arbitary index value. The distribution of predicted boardings per stop is below:
+
+```{r}
+ggplot(lm_dat, aes(x=predicted_boardings)) + 
+  geom_histogram() +
+  theme_minimal() +
+  labs(title = "Predicted Boardings")
+```
+
+```{r}
+ggplot(lm_dat, aes(x=daily_boards, y = predicted_boardings)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot(lm_dat[daily_boards < 200], aes(x=daily_boards, y = predicted_boardings)) +
+  geom_point() +
+  geom_smooth()
+```
+
+
+There are several ways we can split this distribution to achieve 5 distinct market areas. However, a map of the continuous estimate is also informative: 
+
+```{r}
+ggplot(lm_dat_sf %>% dplyr::filter(!is.na(predicted_boardings))) +
+  geom_sf(aes(fill = predicted_boardings), lwd = 0) +
+  scale_fill_viridis_c() +
+  theme_minimal()
+```
+
+Here we can see the "bullseye" pattern we might expect
+
+## Residuals

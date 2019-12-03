@@ -18,7 +18,6 @@ options(tigris_class = 'sf')
 apc <- readRDS('data/metro-transit/apc-interpolated.RDS')
 setDT(apc)
 
-apc <- apc[, year := year(ymd(date_key))]
 apc[, site_id := as.character(site_id)]
 
 # assign stops to block groups ------------------

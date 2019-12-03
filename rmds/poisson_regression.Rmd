@@ -1,0 +1,38 @@
+---
+title: "Poisson Regression"
+author: "Raven McKnight"
+date: "12/3/2019"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+    theme: paper
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Before moving on to spatial models, we can work with a simpler intermediate step: Bayesian Poisson regression. We expect Poisson regression to be "better" than a simple linear regression for several reasons. First, ridership is a count variable so using a Poisson is more ture to the distribution of our response.
+
+Second, it allows us to use an offset term. Offset terms are covariates with their parameters set to 1. They are used to scale the mean of a Poisson variable, like a rate. In disease mapping studies, the offset is often set to the total population of areal unit $i$, which is a natural maximum to disease counts. In our case, there is no obvious bounding maximum, but total population and total times a bus makes a stop in block group $i$ are natural places to start. 
+
+# The Model
+
+Let $Y_i$ equal the average number of boardings in block group $i$ in 2017, and let $E_i$ equal the average number of times a bus stops in that block group. Then the Poisson regression can be written
+
+\begin{align}
+Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
+\eta_i = log(\lambda_i) &= \alpha + \sum_{n=1}^{4}x_n\beta
+\end{align}
+
+where $\lambda_i$ is the relative "risk" of ridership given exposure to covariates $x\beta$. 
+
+We'll use the same four covariates as we used in the linear regression: population density, employment density, percent of households with no vehicle, and a walkability metric. 
+
+# Results
+
+## Residuals
