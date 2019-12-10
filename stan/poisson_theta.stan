@@ -25,4 +25,7 @@ model {
 generated quantities {
   vector[N] eta = log_E + mu + x*betas + theta * sigma;
   vector[N] lambda = exp(eta);
+  vector[N] y_rep;
+  for(n in 1:N)
+    y_rep[n] = poisson_rng(lambda[n]);
 }

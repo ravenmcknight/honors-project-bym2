@@ -20,7 +20,8 @@ mod_dat[, year := year(ymd(date_key))]
 lm_dat <- mod_dat[year == 2017]
 lm_dat <- lm_dat[wday != 6 & wday != 7]
 lm_dat <- lm_dat[, .(daily_boards = mean(daily_boards, na.rm = T), 
-                     daily_stops = mean(daily_stops, na.rm = T)), keyby = .(GEOID)]
+                     daily_stops = mean(daily_stops, na.rm = T), 
+                     daily_boards_per_stop = mean(boardings_per_stop)), keyby = .(GEOID)]
 lm_dat <- unique(lm_dat)
 
 cov <- readRDS('data/modeling-dat/ag_2017_scaled_mod.RDS') # using scaled but not logged
@@ -40,6 +41,7 @@ saveRDS(lm_dat, 'data/modeling-dat/lm_dat_scaled.RDS')
 p_dat <- lm_dat[, -c('log_daily_boards', 'log_daily_stops')]
 p_dat[, daily_boards := as.integer(daily_boards)]
 p_dat[, daily_stops := as.integer(daily_stops)]
+p_dat[, daily_boards_per_stop := as.integer(daily_boards_per_stop)]
 
 saveRDS(p_dat, 'data/modeling-dat/p_dat_scaled.RDS')
 

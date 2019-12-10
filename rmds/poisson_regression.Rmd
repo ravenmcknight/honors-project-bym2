@@ -28,7 +28,7 @@ options(mc.cores = parallel::detectCores())
 options(tigris_class = "sf")
 options(tigris_use_cache = TRUE)
 
-mod_dat <- readRDS('/Users/raven/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+mod_dat <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
 setDT(mod_dat)
 
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
@@ -58,9 +58,9 @@ We'll use the same four covariates as we used in the linear regression: populati
 # Results
 
 ```{r}
-mod_dat <- mod_dat[!is.na(daily_boards) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(daily_stops)]
+mod_dat <- mod_dat[!is.na(daily_boards_per_stop) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(daily_stops)]
 
-y <- mod_dat$daily_boards
+y <- mod_dat$daily_boards_per_stop
 E <- mod_dat$daily_stops
 
 N <- nrow(mod_dat)
@@ -70,28 +70,28 @@ x <- matrix(ncol = 4, c(mod_dat$pop_density, mod_dat$emp_density, mod_dat$perc_n
 
 standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
-poisson <- "/Users/raven/Documents/honors/honors-project/stan/poisson.stan"
+poisson <- "/Users/mcknigri/Documents/honors/honors-project/stan/poisson.stan"
 
-#poisson_fitsimp <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
-poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
+poisson_fitsimp <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
+#poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
 
 
 print(poisson_fitsimp, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]"), probs=c(0.025, 0.5, 0.975))
-#launch_shinystan(poisson_fitsimp)
+launch_shinystan(poisson_fitsimp)
 ```
 
 
 
 ## Predictions
 ```{r}
-posterior <- extract(poisson_fitsimp)
+posterior <- rstan::extract(poisson_fitsimp)
 yrep <- posterior$y_rep
-yrep <- yrep[sample(nrow(yrep), 50), ]
+yrep <- yrep[sample(nrow(yrep), 100), ]
 
 pp_check(y, yrep, ppc_dens_overlay) + 
   theme_minimal() +
   xlim(0, 200) +
-  labs(title = "Actual versus fitted")
+  labs(title = "Actual versus fitted") + xlim(-1, 5)
 ```
 
 
@@ -176,9 +176,9 @@ Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
 ## Results
 
 ```{r}
-poisson_theta <- "/Users/raven/Documents/honors/honors-project/stan/poisson_theta.stan"
+poisson_theta <- "/Users/mcknigri/Documents/honors/honors-project/stan/poisson_theta.stan"
 
-poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 7000, iter = 8000)
+poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 1000, iter = 2000)
 saveRDS(poisson_theta_fit, "/Users/raven/Documents/honors/honors-project/stan/poisson_theta_test.stan")
 
 beepr::beep("fanfare")
@@ -189,11 +189,13 @@ launch_shinystan(poisson_theta_fit)
 
 ```{r}
 fit <- rstan::extract(poisson_theta_fit)
-test <- rpois(fit$lambda, n = 1513) 
+theta_yrep <- fit$y_rep
+theta_yrep <- theta_yrep[sample(nrow(theta_yrep), 100), ]
 
-ggplot(mod_dat, aes(x=test)) +
-  geom_density(color = "red") +
-  geom_density(aes(x=daily_boards*365), color = "blue") + xlim(0, 500)
+pp_check(y, theta_yrep, ppc_dens_overlay) + 
+  theme_minimal() +
+  xlim(0, 200) +
+  labs(title = "Actual versus fitted") + xlim(-1, 5)
 ```
 
 So this isn't great but I think it might just need more iterations? This is on the "run overnight" list. 
