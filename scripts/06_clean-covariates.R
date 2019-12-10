@@ -102,9 +102,16 @@ setDT(logged_dat)
 saveRDS(logged_dat, 'data/modeling-dat/ag_2017_logged_mod.RDS')
 
 # scale
-scaled_dat <- lapply(logged_dat[, -c('GEOID')], scale)
+scaled_dat <- lapply(small_dat[, -c('GEOID')], scale)
 scaled_dat$GEOID <- logged_dat$GEOID
 scaled_dat <- as.data.table(scaled_dat)
 
 saveRDS(scaled_dat, 'data/modeling-dat/ag_2017_scaled_mod.RDS')
 
+
+# scale
+lscaled_dat <- lapply(logged_dat[, -c('GEOID')], scale)
+lscaled_dat$GEOID <- logged_dat$GEOID
+lscaled_dat <- as.data.table(lscaled_dat)
+
+saveRDS(scaled_dat, 'data/modeling-dat/ag_2017_logscaled_mod.RDS')

@@ -12,6 +12,27 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA)
+library(rstan)
+library(shinystan)
+library(data.table)
+library(ggplot2)
+library(rgdal)
+library(sf)
+library(tigris)
+library(bayesplot)
+
+options(mc.cores = parallel::detectCores())
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+
+mod_dat <- readRDS('/Users/raven/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+setDT(mod_dat)
+
+counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
+bgs <- block_groups("MN", counties, 2016)
 ```
 
 # Introduction
@@ -20,19 +41,195 @@ Before moving on to spatial models, we can work with a simpler intermediate step
 
 Second, it allows us to use an offset term. Offset terms are covariates with their parameters set to 1. They are used to scale the mean of a Poisson variable, like a rate. In disease mapping studies, the offset is often set to the total population of areal unit $i$, which is a natural maximum to disease counts. In our case, there is no obvious bounding maximum, but total population and total times a bus makes a stop in block group $i$ are natural places to start. 
 
-# The Model
+# The Simplest Model
 
-Let $Y_i$ equal the average number of boardings in block group $i$ in 2017, and let $E_i$ equal the average number of times a bus stops in that block group. Then the Poisson regression can be written
+Let $Y_i$ equal the average number of weekday boardings in block group $i$ in 2017, and let $E_i$ equal the average number of times a bus stops in that block group. Then the Poisson regression can be written
 
 \begin{align}
 Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
-\eta_i = log(\lambda_i) &= \alpha + \sum_{n=1}^{4}x_n\beta
+\eta_i = log(\lambda_i) &= \mu + \sum_{n=1}^{4}x_n\beta\\
+\theta & \sim N(0, 1)
 \end{align}
 
-where $\lambda_i$ is the relative "risk" of ridership given exposure to covariates $x\beta$. 
+where $\lambda_i$ is the relative "risk" of ridership given exposure to covariates $x\beta$ and \theta models extra-Poisson variance. 
 
 We'll use the same four covariates as we used in the linear regression: population density, employment density, percent of households with no vehicle, and a walkability metric. 
 
 # Results
 
+```{r}
+mod_dat <- mod_dat[!is.na(daily_boards) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(daily_stops)]
+
+y <- mod_dat$daily_boards
+E <- mod_dat$daily_stops
+
+N <- nrow(mod_dat)
+
+K <- 4
+x <- matrix(ncol = 4, c(mod_dat$pop_density, mod_dat$emp_density, mod_dat$perc_no_veh, mod_dat$walkability))
+
+standat1 <- list(y = y, E = E, x = x, K = K, N = N)
+
+poisson <- "/Users/raven/Documents/honors/honors-project/stan/poisson.stan"
+
+#poisson_fitsimp <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
+poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
+
+
+print(poisson_fitsimp, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]"), probs=c(0.025, 0.5, 0.975))
+#launch_shinystan(poisson_fitsimp)
+```
+
+
+
+## Predictions
+```{r}
+posterior <- extract(poisson_fitsimp)
+yrep <- posterior$y_rep
+yrep <- yrep[sample(nrow(yrep), 50), ]
+
+pp_check(y, yrep, ppc_dens_overlay) + 
+  theme_minimal() +
+  xlim(0, 200) +
+  labs(title = "Actual versus fitted")
+```
+
+
+```{r}
+mod_dat[, predicted_boards := rpois(lambda = daily_stops * exp(-1.13 + 0.06*pop_density + 0.04*emp_density + 0.16*perc_no_veh), n = nrow(mod_dat))]
+
+mod_dat_sf <- dplyr::left_join(bgs, mod_dat)
+
+ggplot(mod_dat_sf, aes(x=daily_boards, y = predicted_boards)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Actual versus predicted", subtitle = "Clearly overstimating outliers") 
+
+ggplot(mod_dat_sf %>% dplyr::filter(daily_boards < 500), aes(x=daily_boards, y = predicted_boards)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Actual versus predicted", subtitle = "Clearly overstimating outliers") +
+  xlim(0, 500) + ylim(0, 500)
+```
+
+```{r}
+a <- ggplot(mod_dat_sf %>% dplyr::filter(!is.na(daily_boards) & daily_boards != 0), aes(fill=log(daily_boards))) + 
+  geom_sf(lwd = 0) +
+  scale_fill_viridis_c() + 
+  theme_minimal() +
+  labs(title = "Observed log daily boardings") +
+  theme(legend.position = 'none')
+
+b <- ggplot(mod_dat_sf %>% dplyr::filter(!is.na(daily_boards)), aes(fill=log(predicted_boards))) + 
+  geom_sf(lwd = 0) +
+  scale_fill_viridis_c() + 
+  theme_minimal() +
+  labs(title = "Predicted log daily boardings") +
+  theme(legend.position = 'none')
+
+gridExtra::grid.arrange(a, b, ncol = 2)
+```
+
+It looks like the simple Poisson regression is beginning to capture the correct spatial pattern, though it's underestimating some areas on the suburbs. 
+
 ## Residuals
+
+```{r}
+ggplot(mod_dat_sf %>% dplyr::filter(!is.na(daily_boards)), aes(fill=log(daily_boards) - log(predicted_boards))) + 
+  geom_sf(lwd = 0) +
+  scale_fill_viridis_c() + 
+  theme_minimal() +
+  labs(title = "Residuals") +
+  theme(legend.position = 'none')
+```
+
+In general, it seems the model is failing in a few ways: overestimating ridership in high-ridership block groups, and underestimating the number of block groups with low ridership. 
+
+Let's see if these residuals are spatially autocorrelated. 
+
+```{r}
+library(spdep)
+
+resid_dat <- mod_dat_sf %>% 
+  dplyr::filter(!is.na(daily_boards))
+
+nb <- poly2nb(resid_dat)
+W <- nb2mat(nb, style = "B", zero.policy = TRUE)
+listW <- nb2listw(nb, zero.policy = TRUE)
+
+resid_dat <- resid_dat %>%
+  dplyr::mutate(resid = daily_boards - predicted_boards)
+
+moran.mc(resid_dat$resid, listW, nsim = 9999, zero.policy = TRUE)
+```
+
+# An Improvement
+
+One way we could improve this model is by explicitly modeling the extra-Poisson variance (or overdispersion) which may be contributing the the poor fit above. We can add a $\theta$ parameter to address this variation as follows
+
+\begin{align}
+Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
+\eta_i = log(\lambda_i) &= \mu + \sum_{n=1}^{4}x_n\beta + \theta \\
+\theta & \sim N(0, 1)
+\end{align}
+
+## Results
+
+```{r}
+poisson_theta <- "/Users/raven/Documents/honors/honors-project/stan/poisson_theta.stan"
+
+poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 7000, iter = 8000)
+saveRDS(poisson_theta_fit, "/Users/raven/Documents/honors/honors-project/stan/poisson_theta_test.stan")
+
+beepr::beep("fanfare")
+
+print(poisson_theta_fit, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "theta[5]", "eta[5]", "lambda[5]"), probs=c(0.025, 0.5, 0.975))
+launch_shinystan(poisson_theta_fit)
+```
+
+```{r}
+fit <- rstan::extract(poisson_theta_fit)
+test <- rpois(fit$lambda, n = 1513) 
+
+ggplot(mod_dat, aes(x=test)) +
+  geom_density(color = "red") +
+  geom_density(aes(x=daily_boards*365), color = "blue") + xlim(0, 500)
+```
+
+So this isn't great but I think it might just need more iterations? This is on the "run overnight" list. 
+
+# Testing total annual rides
+
+```{r}
+standat1 <- list(y = y*365, E = E, x = x, K = K, N = N)
+
+poisson <- "/Users/raven/Documents/honors/honors-project/stan/poisson.stan"
+
+poisson_fit_year <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
+#poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
+beepr::beep("fanfare")
+print(poisson_fit_year, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]"), probs=c(0.025, 0.5, 0.975))
+```
+
+```{r}
+fityear <- rstan::extract(poisson_fit_year)
+testyear <- rpois(fityear$lambda, n = 1513) 
+
+ggplot(mod_dat, aes(x=testyear)) +
+  geom_density(color = "red") +
+  geom_density(aes(x=daily_boards*365), color = "blue") + xlim(0, 3000)
+```
+
+# Testing negative 
+
+```{r}
+negbinom <- "/Users/raven/Documents/honors/honors-project/stan/negbinom.stan"
+
+nb_fit <- stan(negbinom, data = standat1, warmup = 1000, iter = 2000, control = list(adapt_delta = 0.99))
+
+
+print(nb_fit, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "eta[5]", "lambda[5]", "scale"), probs=c(0.025, 0.5, 0.975))
+
+launch_shinystan(nb_fit)
+```
+

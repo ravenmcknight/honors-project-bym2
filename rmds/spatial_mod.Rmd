@@ -12,6 +12,126 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA)
+library(rstan)
+library(shinystan)
+library(data.table)
+library(ggplot2)
+library(rgdal)
+library(sf)
+
+options(mc.cores = parallel::detectCores())
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+
+mod_dat <- readRDS('/Users/raven/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+setDT(mod_dat)
+
+counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
+bgs <- block_groups("MN", counties)
+
+spat_dat <- dplyr::left_join(bgs, mod_dat)
+spat_dat <- spat_dat %>%
+  dplyr::filter(!is.na(daily_boards) & !is.na(walkability) & !is.na(perc_no_veh) & !is.na(pop_density) & !is.na(emp_density))
 ```
 
 # Introduction
+
+We can improve the Poisson regression by modeling the residuals. As we saw, there is some spatial autocorrelation in the residuals. Additionally, the distribution of $Y_i$ is overdispersed, meaning the variance is greater than we would expect from a Poisson distribution. Therefore, we'll add *two* parameters to account for both pure, uncorrelated overdispersion ($\theta$) and spatially autocorrelated variance ($\phi$). 
+
+
+## The Model
+For areal unit $i$, the spatial model can be defined
+
+Let $Y_i$ represent the average number of daily boardings in census block group $i$ (rounded to an integer). Then the spatial model can be defined
+
+\begin{align}
+Y_i|\theta_i & \sim \text{Poisson}(E_i\lambda_i) \\
+\eta_i = \text{log}(\lambda_i) &= \mu + x\beta + ((\sqrt{\rho / s})\phi + (\sqrt{1-\rho})\theta)\sigma  \\
+\phi &\sim N(0, Q^{-1}) \\
+\theta &\sim N(0, n) \\
+\rho & \sim \text{beta}(1/2, 1/2) \\
+\sigma &\sim \text{exponential }
+
+ 
+\end{align}
+
+where 
+
+* E is an offset term, sometimes also called the baseline or "expected value" of Y (same as Poisson regression)
+* $\lambda_i$ is the relative "risk", and $\eta_i$ is the log relative risk
+* $\mu$ is the overall "risk" level, an intercept term
+* $x\beta$ are covariates which vary spatially
+* $\phi$ is the intrinsic conditional autoregressive (ICAR) model which accounts for spatially structured errors. In this case, we are using the BYM2 model
+* $\theta$ accounts for pure overdispersion. This parameter is the complement to $\phi$ and accounts for non-spatial errors. 
+* $\rho$ is a mixing parameter. It determines how much variance comes from spatially correlated versus independent error terms. The introduction of $\rho$ is a key difference between the BYM and BYM2 models. 
+* $s$ is a scaling factor such that $Var(\phi_i) \approx 1$. We set this variance so that $\sigma$ is the actual standard deviation of the errors.
+* $n$ is the number of fully connected subgraphs in the neighborhood structure. $n=1$ for study areas with no regions with 0 neighbors. 
+* $\sigma \geq 0$ is the overall standard deviation for combined error terms
+
+
+# Results
+
+## One covariate, Ramsey County
+```{r}
+spat_dat <- spat_dat %>% 
+  dplyr::filter(COUNTYFP == 123)
+
+y = spat_dat$daily_boards
+E = spat_dat$daily_stops
+
+K = 1
+x = matrix(ncol = 1, c(spat_dat$emp_density))
+
+nb <- poly2nb(spat_dat)
+
+source("nb_helper_funs.R")
+nbs <- nb2graph(nb)
+N <- nbs$N
+node1 <- nbs$node1
+node2 <- nbs$node2
+N_edges <- nbs$N_edges
+scaling_factor <- scale_nb_components(nb)[1]
+
+standat1 <- list(N = N, N_edges = N_edges, node1 = node1, node2 = node2, y = y, E = E, scaling_factor = scaling_factor, K = K, x = x)
+
+bym2 <- "/Users/raven/Documents/honors/honors-project/stan/bym2.stan"
+
+#bym2_fit1 <- stan(bym2, data = standat1, warmup = 5000, iter = 6000, verbose = T)
+#saveRDS(bym2_fit1, "/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
+
+bym2_fit1 <- readRDS("/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
+```
+
+
+```{r}
+print(bym2_fit1, pars=c("beta0", "betas[1]", "rho", "sigma", "logit_rho", "mu[5]", "phi[5]", "theta[5]"), probs=c(0.025, 0.5, 0.975))
+#launch_shinystan(bym2_fit1)
+```
+
+I'm not sure if the problem with this is that I didn't run it enough, it's parameterized poorly, etc. Actually only took ~10 minutes to run. 
+
+# All four covariates, Ramsey
+
+Using not enough iterations right now so I can see if it works
+```{r}
+x2 <- matrix(ncol = 4, c(spat_dat$pop_density, spat_dat$emp_density, spat_dat$perc_no_veh, spat_dat$walkability))
+K2 <- 4
+
+standat2 <- list(N = N, N_edges = N_edges, node1 = node1, node2 = node2, y = y, E = E, scaling_factor = scaling_factor, K = K2, x = x2)
+
+#bym2_fit2 <- stan(bym2, data = standat2, warmup = 2000, iter = 3000, thin = 1, verbose = T)
+
+#saveRDS(bym2_fit2, "/Users/raven/Documents/honors/honors-project/fits/bym2_fit2.RDS")
+
+bym2_fit2 <- readRDS("/Users/raven/Documents/honors/honors-project/fits/bym2_fit2.RDS")
+```
+
+```{r}
+#launch_shinystan(bym2_fit2)
+print(bym2_fit2, pars=c("beta0", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "rho", "sigma", "logit_rho", "mu[5]", "phi[5]", "theta[5]"), probs=c(0.025, 0.5, 0.975))
+```
+
+Everything except $\rho$ seems to be alright..

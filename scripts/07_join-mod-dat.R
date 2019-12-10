@@ -23,7 +23,7 @@ lm_dat <- lm_dat[, .(daily_boards = mean(daily_boards, na.rm = T),
                      daily_stops = mean(daily_stops, na.rm = T)), keyby = .(GEOID)]
 lm_dat <- unique(lm_dat)
 
-cov <- readRDS('data/modeling-dat/ag_2017_logged_mod.RDS') # using unscaled, unlogged for interpretability for TMA
+cov <- readRDS('data/modeling-dat/ag_2017_scaled_mod.RDS') # using scaled but not logged
 setDT(cov)
 
 lm_dat <- merge(lm_dat, cov, on = 'GEOID', all.x = TRUE)
@@ -33,4 +33,14 @@ lm_dat[daily_stops == 0, daily_stops := 0.01]
 lm_dat[, log_daily_boards := log(daily_boards)]
 lm_dat[, log_daily_stops := log(daily_stops)]
 
-saveRDS(lm_dat, 'data/modeling-dat/lm_dat_logged.RDS')
+saveRDS(lm_dat, 'data/modeling-dat/lm_dat_scaled.RDS')
+
+## poisson regression ------------
+
+p_dat <- lm_dat[, -c('log_daily_boards', 'log_daily_stops')]
+p_dat[, daily_boards := as.integer(daily_boards)]
+p_dat[, daily_stops := as.integer(daily_stops)]
+
+saveRDS(p_dat, 'data/modeling-dat/p_dat_scaled.RDS')
+
+# unscaled for easier prediction?
