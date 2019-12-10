@@ -12,6 +12,7 @@ invisible(lapply(packages, library, character.only = TRUE))
 
 rm(miss_pkgs, packages)
 
+options(tigris_use_cache = TRUE)
 options(tigris_class = 'sf')
 
 # Read "raw" data, from "gap-fill.R" script
@@ -70,8 +71,10 @@ apc <- apc[line_id != 902 & line_id != 901]
 # exclude things outside of 7 county
 apc <- apc[!is.na(GEOID)]
 
+apc[, boardings_per_stop := mean(board, na.rm = T), keyby = .(date_key, site_id)]
+
 apc_ag <- apc[, .(daily_boards = sum(board, na.rm = T), daily_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
-                  num_routes = length(unique(line_id)), daily_stops = .N), keyby = .(date_key, GEOID)]
+                  num_routes = length(unique(line_id)), daily_stops = .N, boardings_per_stop = mean(boardings_per_stop)), keyby = .(date_key, GEOID)]
 
 # more modeling specific things
 apc_ag[, wday := wday(ymd(date_key))]
