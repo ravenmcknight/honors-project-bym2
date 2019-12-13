@@ -28,7 +28,7 @@ options(mc.cores = parallel::detectCores())
 options(tigris_class = "sf")
 options(tigris_use_cache = TRUE)
 
-mod_dat <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+mod_dat <- readRDS('/Users/raven/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
 setDT(mod_dat)
 
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
@@ -51,7 +51,7 @@ Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
 \theta & \sim N(0, 1)
 \end{align}
 
-where $\lambda_i$ is the relative "risk" of ridership given exposure to covariates $x\beta$ and \theta models extra-Poisson variance. 
+where $\lambda_i$ is the relative "risk" of ridership given exposure to covariates $x\beta$. 
 
 We'll use the same four covariates as we used in the linear regression: population density, employment density, percent of households with no vehicle, and a walkability metric. 
 
@@ -60,7 +60,7 @@ We'll use the same four covariates as we used in the linear regression: populati
 ```{r}
 mod_dat <- mod_dat[!is.na(daily_boards_per_stop) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(daily_stops)]
 
-y <- mod_dat$daily_boards_per_stop
+y <- mod_dat$daily_boards
 E <- mod_dat$daily_stops
 
 N <- nrow(mod_dat)
@@ -70,14 +70,16 @@ x <- matrix(ncol = 4, c(mod_dat$pop_density, mod_dat$emp_density, mod_dat$perc_n
 
 standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
-poisson <- "/Users/mcknigri/Documents/honors/honors-project/stan/poisson.stan"
+poisson <- "/Users/raven/Documents/honors/honors-project/stan/poisson.stan"
 
-poisson_fitsimp <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
-#poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
+#poisson_fitsimp <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
+#saveRDS(poisson_fitsimp, "/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
+
+poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
 
 
 print(poisson_fitsimp, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]"), probs=c(0.025, 0.5, 0.975))
-launch_shinystan(poisson_fitsimp)
+#launch_shinystan(poisson_fitsimp)
 ```
 
 
@@ -85,13 +87,16 @@ launch_shinystan(poisson_fitsimp)
 ## Predictions
 ```{r}
 posterior <- rstan::extract(poisson_fitsimp)
-yrep <- posterior$y_rep
-yrep <- yrep[sample(nrow(yrep), 100), ]
+yrep <- matrix(ncol = 1513, nrow = 100)
+
+for(i in 1:100){
+  yrep[i, ] <- rpois(1513, posterior$lambda*E)
+}
 
 pp_check(y, yrep, ppc_dens_overlay) + 
   theme_minimal() +
   xlim(0, 200) +
-  labs(title = "Actual versus fitted") + xlim(-1, 5)
+  labs(title = "Actual versus fitted") + xlim(0, 100)
 ```
 
 
@@ -145,7 +150,7 @@ ggplot(mod_dat_sf %>% dplyr::filter(!is.na(daily_boards)), aes(fill=log(daily_bo
 
 In general, it seems the model is failing in a few ways: overestimating ridership in high-ridership block groups, and underestimating the number of block groups with low ridership. 
 
-Let's see if these residuals are spatially autocorrelated. 
+Let's see if these residuals are spatially autocorrelated:
 
 ```{r}
 library(spdep)
@@ -163,75 +168,52 @@ resid_dat <- resid_dat %>%
 moran.mc(resid_dat$resid, listW, nsim = 9999, zero.policy = TRUE)
 ```
 
+
+According to the Moran simulation, they're not spatially clustered, but we still haven't found a good way to measure "linear" clustering. 
+
+
 # An Improvement
 
-One way we could improve this model is by explicitly modeling the extra-Poisson variance (or overdispersion) which may be contributing the the poor fit above. We can add a $\theta$ parameter to address this variation as follows
+One way we could improve this model is by explicitly modeling the extra-Poisson variance (or overdispersion) which may be contributing the the poor fit above. We can add a $\theta$ parameter (scaled by $\sigma$, following the bym2 model) to address this variation as follows
 
 \begin{align}
 Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
-\eta_i = log(\lambda_i) &= \mu + \sum_{n=1}^{4}x_n\beta + \theta \\
+\eta_i = log(\lambda_i) &= \mu + \sum_{n=1}^{4}x_n\beta + \theta*\sigma \\
 \theta & \sim N(0, 1)
 \end{align}
 
 ## Results
 
 ```{r}
-poisson_theta <- "/Users/mcknigri/Documents/honors/honors-project/stan/poisson_theta.stan"
+poisson_theta <- "/Users/raven/Documents/honors/honors-project/stan/poisson_theta.stan"
 
-poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 1000, iter = 2000)
-saveRDS(poisson_theta_fit, "/Users/raven/Documents/honors/honors-project/stan/poisson_theta_test.stan")
+#poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 1000, iter = 2000)
+#saveRDS(poisson_theta_fit, "/Users/raven/Documents/honors/honors-project/fits/poisson_theta_test.RDS")
 
-beepr::beep("fanfare")
+poisson_theta_fit <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_theta_test.RDS")
 
 print(poisson_theta_fit, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "theta[5]", "eta[5]", "lambda[5]"), probs=c(0.025, 0.5, 0.975))
+
 launch_shinystan(poisson_theta_fit)
 ```
 
-```{r}
-fit <- rstan::extract(poisson_theta_fit)
-theta_yrep <- fit$y_rep
-theta_yrep <- theta_yrep[sample(nrow(theta_yrep), 100), ]
+This also has a lot of autocorrelation in the chains, needs to be run for more iterations.  
 
-pp_check(y, theta_yrep, ppc_dens_overlay) + 
+```{r}
+posterior2 <- rstan::extract(poisson_theta_fit)
+yrep2 <- matrix(ncol = 1513, nrow = 100)
+
+for(i in 1:100){
+  yrep2[i, ] <- rpois(1513, posterior2$lambda[i,]*E)
+}
+
+pp_check(y, yrep2, ppc_dens_overlay) + 
   theme_minimal() +
   xlim(0, 200) +
-  labs(title = "Actual versus fitted") + xlim(-1, 5)
+  labs(title = "Actual versus fitted") + xlim(0, 100)
 ```
 
-So this isn't great but I think it might just need more iterations? This is on the "run overnight" list. 
-
-# Testing total annual rides
-
-```{r}
-standat1 <- list(y = y*365, E = E, x = x, K = K, N = N)
-
-poisson <- "/Users/raven/Documents/honors/honors-project/stan/poisson.stan"
-
-poisson_fit_year <- stan(poisson, data = standat1, warmup = 1000, iter = 2000)
-#poisson_fitsimp <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_fitsimp.RDS")
-beepr::beep("fanfare")
-print(poisson_fit_year, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]"), probs=c(0.025, 0.5, 0.975))
-```
-
-```{r}
-fityear <- rstan::extract(poisson_fit_year)
-testyear <- rpois(fityear$lambda, n = 1513) 
-
-ggplot(mod_dat, aes(x=testyear)) +
-  geom_density(color = "red") +
-  geom_density(aes(x=daily_boards*365), color = "blue") + xlim(0, 3000)
-```
-
-# Testing negative 
-
-```{r}
-negbinom <- "/Users/raven/Documents/honors/honors-project/stan/negbinom.stan"
-
-nb_fit <- stan(negbinom, data = standat1, warmup = 1000, iter = 2000, control = list(adapt_delta = 0.99))
+The next improvement would be to determine roughly how much of the variation currently modeled by $\theta * \sigma$ is due to unmeasured covariates vs pure overdispersion vs spatial variance. 
 
 
-print(nb_fit, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "eta[5]", "lambda[5]", "scale"), probs=c(0.025, 0.5, 0.975))
-
-launch_shinystan(nb_fit)
-```
 

@@ -10,7 +10,7 @@ output:
     code_folding: hide
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning = FALSE, message = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 #install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
@@ -21,6 +21,9 @@ library(data.table)
 library(ggplot2)
 library(rgdal)
 library(sf)
+library(tigris)
+library(spdep)
+library(bayesplot)
 
 options(mc.cores = parallel::detectCores())
 options(tigris_class = "sf")
@@ -76,7 +79,7 @@ where
 
 ## One covariate, Ramsey County
 ```{r}
-spat_dat <- spat_dat %>% 
+spat_dat <- spat_dat %>%
   dplyr::filter(COUNTYFP == 123)
 
 y = spat_dat$daily_boards
@@ -97,25 +100,24 @@ scaling_factor <- scale_nb_components(nb)[1]
 
 standat1 <- list(N = N, N_edges = N_edges, node1 = node1, node2 = node2, y = y, E = E, scaling_factor = scaling_factor, K = K, x = x)
 
-bym2 <- "/Users/raven/Documents/honors/honors-project/stan/bym2.stan"
-
-#bym2_fit1 <- stan(bym2, data = standat1, warmup = 5000, iter = 6000, verbose = T)
-#saveRDS(bym2_fit1, "/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
-
-bym2_fit1 <- readRDS("/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
+# bym2 <- "/Users/raven/Documents/honors/honors-project/stan/bym2.stan"
+# 
+# #bym2_fit1 <- stan(bym2, data = standat1, warmup = 5000, iter = 6000, verbose = T)
+# #saveRDS(bym2_fit1, "/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
+# 
+# bym2_fit1 <- readRDS("/Users/raven/Documents/honors/honors-project/fits/bym2_fit1.RDS")
 ```
 
 
-```{r}
-print(bym2_fit1, pars=c("beta0", "betas[1]", "rho", "sigma", "logit_rho", "mu[5]", "phi[5]", "theta[5]"), probs=c(0.025, 0.5, 0.975))
-#launch_shinystan(bym2_fit1)
-```
+<!-- ```{r} -->
+<!-- print(bym2_fit1, pars=c("beta0", "betas[1]", "rho", "sigma", "logit_rho", "mu[5]", "phi[5]", "theta[5]"), probs=c(0.025, 0.5, 0.975)) -->
+<!-- #launch_shinystan(bym2_fit1) -->
+<!-- ``` -->
 
-I'm not sure if the problem with this is that I didn't run it enough, it's parameterized poorly, etc. Actually only took ~10 minutes to run. 
+<!-- I'm not sure if the problem with this is that I didn't run it enough, it's parameterized poorly, etc. Actually only took ~10 minutes to run.  -->
 
-# All four covariates, Ramsey
+# All four covariates, Ramsey County
 
-Using not enough iterations right now so I can see if it works
 ```{r}
 x2 <- matrix(ncol = 4, c(spat_dat$pop_density, spat_dat$emp_density, spat_dat$perc_no_veh, spat_dat$walkability))
 K2 <- 4
@@ -130,8 +132,24 @@ bym2_fit2 <- readRDS("/Users/raven/Documents/honors/honors-project/fits/bym2_fit
 ```
 
 ```{r}
-#launch_shinystan(bym2_fit2)
+launch_shinystan(bym2_fit2)
 print(bym2_fit2, pars=c("beta0", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "rho", "sigma", "logit_rho", "mu[5]", "phi[5]", "theta[5]"), probs=c(0.025, 0.5, 0.975))
 ```
 
-Everything except $\rho$ seems to be alright..
+Some of these terms haven't fully converged but I've only run the chains for 2000 iterations. Using `shinystan`, I can see that there's a lot of autocorrelation in the chains. I think if there are no other red flags I can run this for many more iterations for a good result. 
+
+```{r}
+posteriorbym2 <- rstan::extract(bym2_fit2)
+yrepbym2 <- matrix(ncol = 357, nrow = 100)
+
+for(i in 1:100){
+  yrepbym2[i, ] <- rpois(357, posteriorbym2$mu[i, ]) # reparameterize
+}
+
+pp_check(y, yrepbym2, ppc_dens_overlay) + 
+  theme_minimal() +
+  xlim(0, 200) +
+  labs(title = "Actual versus fitted") + xlim(0, 100)
+```
+
+This fit should also be improved once I finish variable selection. 

@@ -25,11 +25,5 @@ model {
   reciprocal_scale ~ cauchy(0., 5);
   mu ~ normal(0.0, 50.0); 
   betas ~ normal(0.0, 1.0);
-  y ~ neg_binomial_2_log(log_E + lambda, scale);
-}
-generated quantities {
-  vector[N] y_rep;
-  for(n in 1:N){
-    y_rep[n] = neg_binomial_2_log_rng(log_E[n] + lambda[n], scale);
-  }
+  y ~ neg_binomial(E * eta, scale);
 }
