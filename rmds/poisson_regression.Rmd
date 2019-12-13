@@ -28,7 +28,7 @@ options(mc.cores = parallel::detectCores())
 options(tigris_class = "sf")
 options(tigris_use_cache = TRUE)
 
-mod_dat <- readRDS('/Users/raven/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+mod_dat <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
 setDT(mod_dat)
 
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
@@ -60,13 +60,16 @@ We'll use the same four covariates as we used in the linear regression: populati
 ```{r}
 mod_dat <- mod_dat[!is.na(daily_boards_per_stop) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(daily_stops)]
 
-y <- mod_dat$daily_boards
-E <- mod_dat$daily_stops
+xdat <- mod_dat[, -c("GEOID", "daily_boards_per_stop", "sqkm", "perc_transit_comm")] # still need to fix that var
+xdat <- na.omit(xdat)
 
-N <- nrow(mod_dat)
+y <- xdat$daily_boards
+E <- xdat$daily_stops
 
-K <- 4
-x <- matrix(ncol = 4, c(mod_dat$pop_density, mod_dat$emp_density, mod_dat$perc_no_veh, mod_dat$walkability))
+N <- nrow(xdat)
+
+K <- 27
+x <- as.matrix(xdat)
 
 standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
@@ -185,16 +188,16 @@ Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
 ## Results
 
 ```{r}
-poisson_theta <- "/Users/raven/Documents/honors/honors-project/stan/poisson_theta.stan"
+poisson_theta <- "/Users/mcknigri/Documents/honors/honors-project/stan/poisson_theta.stan"
 
-#poisson_theta_fit <- stan(poisson_theta, data = standat1, warmup = 1000, iter = 2000)
+poisson_theta_fit_LASSO <- stan(poisson_theta, data = standat1, warmup = 7000, iter = 8000)
 #saveRDS(poisson_theta_fit, "/Users/raven/Documents/honors/honors-project/fits/poisson_theta_test.RDS")
 
 poisson_theta_fit <- readRDS("/Users/raven/Documents/honors/honors-project/fits/poisson_theta_test.RDS")
 
 print(poisson_theta_fit, pars = c("mu", "betas[1]", "betas[2]", "betas[3]", "betas[4]", "theta[5]", "eta[5]", "lambda[5]"), probs=c(0.025, 0.5, 0.975))
 
-launch_shinystan(poisson_theta_fit)
+launch_shinystan(poisson_theta_fit_LASSO)
 ```
 
 This also has a lot of autocorrelation in the chains, needs to be run for more iterations.  
