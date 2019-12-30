@@ -21,8 +21,8 @@ parameters {
 model {
   y ~ poisson_log(log_E + beta_0 + x*betas + theta * sigma_y);  
   beta_0 ~ normal(100, 10);
-  betas ~ normal(0, sigma_s^2 * tau_j^2);
-  tau_j ~ exponential(lambda_s^2/2);
+  betas ~ normal(0, square(sigma_s) * square(tau_j));
+  tau_j ~ exponential(square(lambda_s)/2);
   lambda_s ~ cauchy(0, 1);
   theta ~ normal(0.0, 1);
   sigma_y ~ normal(0.0, 1);
