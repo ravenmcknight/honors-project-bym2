@@ -24,6 +24,10 @@ standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
 ## fitting
 
+# simpler
+poisson_lasso <- "~/Documents/honors/honors-project/stan/poisson_lasso.stan"
+poisson_fit_LASSO <- stan(poisson_theta, data = standat1, warmup = 100, iter = 200, verbose = T)
+
 # the model code
 poisson_theta_lasso <- "~/Documents/honors/honors-project/stan/poisson_theta_lasso.stan"
 
