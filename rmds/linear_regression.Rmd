@@ -25,7 +25,7 @@ counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washi
 bgs <- block_groups("MN", counties, 2016)
 
 # should find better way to read data from rmd folder
-lm_dat <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/modeling-dat/lm_dat_scaled.RDS')
+lm_dat <- readRDS('~/Documents/honors/honors-project/data/modeling-dat/lm_dat_scaled.RDS')
 ```
 
 # Introduction
@@ -38,6 +38,9 @@ The simplest model we can fit is a linear regression. This model was inspired by
 ```{r}
 lm_dat <- lm_dat[!is.na(daily_boards) & !is.na(pop_density) & !is.na(emp_density) & !is.na(perc_no_veh) & !is.na(walkability) & !is.na(log_daily_stops)]
 lm_dat[daily_boards_per_stop == 0, daily_boards_per_stop := 0.01]
+
+lm_dat_small <- lm_dat %>% 
+  dplyr::select(-c(GEOID, daily_boards_per_stop, sqkm, perc_transit_comm, log_daily_boards, log_daily_stops))
 
 lm1 <- lm((scale(log(daily_boards_per_stop))) ~ pop_density + emp_density + perc_no_veh + walkability + scale(log_daily_stops), lm_dat, na.action = na.exclude)
 

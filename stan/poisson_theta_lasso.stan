@@ -23,7 +23,7 @@ model {
   beta_0 ~ normal(100, 10);
   betas ~ normal(0, square(sigma_s) * square(tau_j));
   tau_j ~ exponential(square(lambda_s)/2);
-  lambda_s ~ cauchy(0, 1);
+  lambda_s ~ cauchy(0.0, 1);
   theta ~ normal(0.0, 1);
   sigma_y ~ normal(0.0, 1);
 }
