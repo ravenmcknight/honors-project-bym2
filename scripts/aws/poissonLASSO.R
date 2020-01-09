@@ -5,7 +5,7 @@ library(dplyr)
 options(mc.cores = parallel::detectCores())
 
 ## data
-mod_dat <- readRDS('~/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+mod_dat <- readRDS('~/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
 
 # prep for stan
 xdat <- mod_dat %>%
@@ -25,6 +25,6 @@ standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 ## fitting
 
 # the model code
-poisson_theta_lasso <- "~/honors-project/stan/poisson_theta_lasso.stan"
+poisson_theta_lasso <- "~/Documents/honors/honors-project/stan/poisson_theta_lasso.stan"
 
-poisson_theta_fit_LASSO <- stan(poisson_theta_lasso, data = standat1, warmup = 10, iter = 20, verbose = T)
+poisson_theta_fit_LASSO <- stan(poisson_theta_lasso, data = standat1, warmup = 1000, iter = 2000, verbose = T)
