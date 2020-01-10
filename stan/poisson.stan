@@ -9,15 +9,15 @@ transformed data {
   vector[N] log_E = log(E);
 }
 parameters {
-  real mu;                // intercept
+  real beta_0;                // intercept
   vector[K] betas;          // covariates
 }
 model {
-  y ~ poisson_log(log_E + mu + x*betas);  
-  mu ~ normal(0.0, 1);
+  beta_0 ~ normal(0.0, 1);
   betas ~ normal(0.0, 1);
+  y ~ poisson_log_glm(X, beta_0, betas);  
 }
 generated quantities {
-  vector[N] eta = mu + x*betas;
+  vector[N] eta = beta_0 + x*betas;
   vector[N] lambda = exp(eta);
 }
