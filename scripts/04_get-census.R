@@ -204,72 +204,7 @@ saveRDS(tot_jobs, 'data/covariates/tot_jobs.RDS')
 
 # maybe better is rac data
 
-## get RAC data -------------------------------------------
 
-# residence area characteristics
-# type = JT00 is all jobs
-# year = most recent year
-
-rac_urls <- c('https://lehd.ces.census.gov/data/lodes/LODES7/mn/rac/mn_rac_S000_JT00_2017.csv.gz',
-              'https://lehd.ces.census.gov/data/lodes/LODES7/mn/rac/mn_rac_S000_JT00_2016.csv.gz',
-              'https://lehd.ces.census.gov/data/lodes/LODES7/mn/rac/mn_rac_S000_JT00_2015.csv.gz')
-
-for(i in 1:length(years)){
-  download.file(rac_urls[i], paste0('data/covariates/rac/mn_rac_', years[i], '.csv.gz'))
-}
-
-rac_files <- list.files(path = 'data/covariates/rac/')
-l <- lapply(paste0('data/covariates/rac/', rac_files), fread)
-
-l[[1]]$year <- 2017
-l[[2]]$year <- 2016
-l[[3]]$year <- 2015
-
-for(i in 1:3){
-  colnames(l[[i]]) <- c('h_geocode', 'tot_jobs', 'age_29', 'age_30_54', 'age_55',
-                      'wage_1250', 'wage_1250_3333', 'wage_3333', 'ag', 'mining',
-                      'utils', 'construction', 'manuf', 'whole_trade', 'ret_trade',
-                      'transp', 'info', 'finance', 'real_estate', 'prof_serv', 
-                      'manage', 'admin', 'educ', 'health', 'arts', 'ac_food', 
-                      'other', 'pub_admin', 'white_alone', 'black', 'amind', 
-                      'asian', 'native', 'two_or_more', 'not_hisp', 'hisp', 
-                      'less_than_hs', 'hs', 'some_college', 'degree', 'male', 'female', 
-                      'createdate', 'year')
-}
-
-# i think i'll mostly be interested in the service industry
-
-# aggregate blocks to bgs
-
-for(i in 1:3){
-  l[[i]][, GEOID := substr(h_geocode, 1, 12)]
-}
-
-for(i in 1:3){
-  l[[i]]$createdate <- NULL
-  l[[i]] <- l[[i]][, lapply(.SD, sum, na.rm=TRUE), by= c('GEOID', 'year')]
-}
-
-# restrict to metro area
-options(tigris_use_cache = FALSE)
-bgs <- block_groups('MN', counties, year = 2016)
-
-for(i in 1:3){
-  l[[i]] <- l[[i]][GEOID %in% bgs$GEOID]
-}
-
-# idk why i didn't do this sooner
-rac <- rbindlist(l)
-setDT(rac)
-
-# calculate the variables i wanna try
-rac[, perc_jobs_white := white_alone/tot_jobs]
-rac[, perc_jobs_men := male/tot_jobs]
-rac[, perc_jobs_no_college := hs/tot_jobs]
-rac[, perc_jobs_less40 := (wage_1250 + wage_1250_3333)/tot_jobs]
-rac[, perc_jobs_age_less30 := age_29/tot_jobs]
-
-saveRDS(rac, 'data/covariates/rac/all-rac.RDS')
 
 # and maybe even better is wac...
 wac_urls <- c('https://lehd.ces.census.gov/data/lodes/LODES7/mn/wac/mn_wac_S000_JT00_2017.csv.gz',

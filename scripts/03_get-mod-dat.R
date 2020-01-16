@@ -71,17 +71,11 @@ apc <- apc[line_id != 902 & line_id != 901]
 # exclude things outside of 7 county
 apc <- apc[!is.na(GEOID)]
 
-apc[, boardings_per_stop := mean(board, na.rm = T), keyby = .(date_key, site_id)]
+apc_ag <- apc[year(ymd(date_key)) == 2017, .(year_boards = sum(board, na.rm = T), year_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                  num_routes = length(unique(line_id)), year_stops = .N), keyby = .(GEOID)]
 
-apc_ag <- apc[, .(daily_boards = sum(board, na.rm = T), daily_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
-                  num_routes = length(unique(line_id)), daily_stops = .N, boardings_per_stop = mean(boardings_per_stop)), keyby = .(date_key, GEOID)]
+apc_ag[, year_activity := year_boards + year_alights, keyby = .(GEOID)]
 
-# more modeling specific things
-apc_ag[, wday := wday(ymd(date_key))]
-apc_ag[, daily_activity := daily_boards + daily_alights, keyby = .(date_key, GEOID)]
-apc_ag[, total_daily_activity := sum(daily_activity, na.rm =T), keyby = .(date_key)]
-
-
-saveRDS(apc_ag, 'data/modeling-dat/basic_mod_dat.RDS')
+saveRDS(apc_ag, 'data/modeling-dat/basic_mod_dat_ann17.RDS')
 
 

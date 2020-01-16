@@ -1,4 +1,5 @@
 data {
+
   // number obs
   int<lower=0> N;
   // response

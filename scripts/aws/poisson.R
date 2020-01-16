@@ -11,35 +11,33 @@ mod_dat <- readRDS('~/Documents/honors/honors-project/data/modeling-dat/p_dat_sc
 mod_dat <- na.omit(mod_dat)
 setDT(mod_dat)
 
-xdat <- mod_dat[, -c('GEOID', 'daily_boards', 'daily_stops', 'sqkm', 'estimate_tot_pop')]
+xdat <- mod_dat[, -c('GEOID', 'year_boards', 'year_stops', 'sqkm', 'estimate_tot_pop', 'year_alights', 'num_interpolated', 'num_routes', 'year_activity')]
 
 ## regular poisson regression -------------------
 
-y <- mod_dat$daily_boards
-E <- mod_dat$daily_stops
+y <- mod_dat$year_boards
+E <- mod_dat$year_stops
 
 N <- nrow(mod_dat)
 
 K <- ncol(xdat)
 x <- as.matrix(ncol = K, xdat)
 
-standat1 <- list(y = y, E = E, x = x, K = K, N = N)
+standat1 <- list(y = as.integer(y/365), E = E, x = x, K = K, N = N)
 
 ## basic poisson --------------------------------
 
 poisson <- "~/Documents/honors/honors-project/stan/poisson.stan"
 poisson_fit <- stan(poisson, data = standat1, warmup = 1000, iter = 2000, verbose = T)
 
-poisson_fit <- readRDS("~/Documents/honors/honors-project/final-fits/poisson.RDS")
-
-#shinystan::launch_shinystan(poisson_fit)
+saveRDS(poisson_fit, '~/Documents/honors/honors-project/final-fits/poisson_fit.RDS')
 
 ## add overdispersion parameter -----------------
 
 poisson_theta <- "~/Documents/honors/honors-project/stan/poisson_theta.stan"
-poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 10000, verbose = T)
+poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 2000, verbose = T)
 
-#shinystan::launch_shinystan(poisson_theta_fit)
+ #shinystan::launch_shinystan(poisson_theta_fit)
 
 ## add horseshoe priors ------------------------0
 
