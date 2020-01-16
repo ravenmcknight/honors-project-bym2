@@ -169,7 +169,7 @@ saveRDS(ten_veh, 'data/covariates/housing-and-vehicles.RDS')
 acs_emp <- map_dfr(
   years,
   ~ get_acs(
-    geography = "block group",
+    geography = "tract",
     variables = c(transit_commute = "B08006_008",
                   total_commute = "B08006_001"),
     state = "MN",

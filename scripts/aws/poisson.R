@@ -2,46 +2,86 @@
 
 library(rstan)
 library(dplyr)
+library(data.table)
 options(mc.cores = parallel::detectCores())
 rstan_options(autowrite = T)
 
 ## data
 mod_dat <- readRDS('~/Documents/honors/honors-project/data/modeling-dat/p_dat_scaled.RDS')
+mod_dat <- na.omit(mod_dat)
+setDT(mod_dat)
 
-# prep for stan
-xdat <- mod_dat %>%
-  dplyr::select(-c(GEOID, daily_boards_per_stop, sqkm, perc_transit_comm))
-xdat <- na.omit(xdat)
+xdat <- mod_dat[, -c('GEOID', 'daily_boards', 'daily_stops', 'sqkm', 'estimate_tot_pop')]
 
-y <- xdat$daily_boards
-E <- xdat$daily_stops
+## regular poisson regression -------------------
 
-N <- nrow(xdat)
+y <- mod_dat$daily_boards
+E <- mod_dat$daily_stops
 
-K <- 27
-x <- as.matrix(xdat)
+N <- nrow(mod_dat)
+
+K <- ncol(xdat)
+x <- as.matrix(ncol = K, xdat)
 
 standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
-standat2 <- list(y = y, E = E, x = x, K = K, N = N,
-                 scale_alpha = 10, df_tau = 1, scale_tau = 1, rate_sigma = 1)
+## basic poisson --------------------------------
 
-## fitting
-
-# simplest
 poisson <- "~/Documents/honors/honors-project/stan/poisson.stan"
 poisson_fit <- stan(poisson, data = standat1, warmup = 1000, iter = 2000, verbose = T)
 
-# simple lasso
-poisson_lasso <- "~/Documents/honors/honors-project/stan/poisson_lasso.stan"
-poisson_fit_LASSO <- stan(poisson_lasso, data = standat2, warmup = 1000, iter = 2000, verbose = T)
+poisson_fit <- readRDS("~/Documents/honors/honors-project/final-fits/poisson.RDS")
 
-# ridge?
+#shinystan::launch_shinystan(poisson_fit)
 
-poisson_ridge <- "~/Documents/honors/honors-project/stan/poisson_ridge.stan"
-poisson_fit_ridge <- stan(poisson_ridge, data = standat1, warmup = 100, iter = 200, verbose = T)
+## add overdispersion parameter -----------------
 
-# the model code
-poisson_theta_lasso <- "~/Documents/honors/honors-project/stan/poisson_theta_lasso.stan"
+poisson_theta <- "~/Documents/honors/honors-project/stan/poisson_theta.stan"
+poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 10000, verbose = T)
 
-poisson_theta_fit_LASSO <- stan(poisson_theta_lasso, data = standat1, warmup = 100, iter = 200, verbose = T)
+#shinystan::launch_shinystan(poisson_theta_fit)
+
+## add horseshoe priors ------------------------0
+
+poisson_horseshoe <- "~/Documents/honors/honors-project/stan/poisson_theta_horseshoe.stan"
+
+horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N, 
+                  scale_icept = 10, scale_global = 0.2, 
+                  nu_global = 1, nu_local = 1,
+                  slab_scale = 2, slab_df = 4)
+
+poisson_horseshoe_fit <- stan(poisson_horseshoe, data = horseshoe_dat, iter = 200, verbose = T, 
+                              control = list(adapt_delta = 0.99))
+
+## try some simulated data
+
+ysim <- rpois(1495, E * exp(0 + x * (seq(1, 19, by = 1)/10)))
+
+horseshoe_dat_sim <- list(y = ysim, E = E, x = x, K = K, N = N, 
+                          scale_icept = 10, scale_global = 1, 
+                          nu_global = 1, nu_local = 1,
+                          slab_scale = 2, slab_df = 4)
+
+poisson_horseshoe_fit_sim <- stan(poisson_horseshoe, data = horseshoe_dat_sim, iter = 2000, verbose = T, 
+                              control = list(adapt_delta = 0.99))
+
+## test vehtari's code
+
+
+tru_beta <- c(rep(0, 10), rep(5, 9))
+
+
+ysim2 <- c()
+for(i in 1:1495){
+  ysim2[i] <- rpois(n = 1, abs(sum(x[i, ] * t(tru_beta))))
+}
+
+vehtari_dat <- list(y = ysim2, E = E, x = x, K = K, N = N, 
+                    scale_icept = 10, scale_global = 0.2, 
+                    nu_global = 1, nu_local = 1,
+                    slab_scale = 2, slab_df = 2)
+
+vehtari <- "~/Documents/honors/honors-project/stan/vehtari_poisson.stan"
+
+vehtari_fit <- stan(vehtari, data = vehtari_dat, iter = 2000, verbose = T, 
+                    control = list(adapt_delta = 0.99))

@@ -219,4 +219,7 @@ pp_check(y, yrep2, ppc_dens_overlay) +
 The next improvement would be to determine roughly how much of the variation currently modeled by $\theta * \sigma$ is due to unmeasured covariates vs pure overdispersion vs spatial variance. 
 
 
+```{r}
+pairs(poisson_horseshoe_fit)
+```
 
