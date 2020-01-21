@@ -23,7 +23,7 @@ model {
   /// model 
   y ~ poisson_log(log_E + beta_0 + x*betas); 
   // prior on betas
-  beta_0 ~ normal(0.0, 1);
+  beta_0 ~ normal(0.0, 3);
   betas ~ normal(0.0, 1);
 }
 generated quantities {

@@ -1,8 +1,8 @@
 data {
   int < lower =0 > n; // number of observations
   int < lower =0 > d; // number of predictors
-  vector [ n] y; // outputs
-  matrix [n ,d] x; // inputs
+  vector[ n] y; // outputs
+  matrix[n ,d] x; // inputs
   real < lower =0 > scale_icept ; // prior std for the intercept
   real < lower =0 > scale_global ; // scale for the half -t prior for tau
   real < lower =1 > nu_global ; // degrees of freedom for the half -t priors for tau
@@ -13,7 +13,7 @@ data {
 parameters {
   real logsigma ;
   real beta0 ;
-  vector [ d] z;
+  vector[ d] z;
   real < lower =0 > aux1_global ;
   real < lower =0 > aux2_global ;
   vector < lower =0 >[ d] aux1_local ;
@@ -26,8 +26,8 @@ transformed parameters {
   vector < lower =0 >[ d] lambda ; // local shrinkage parameter
   vector < lower =0 >[ d] lambda_tilde ; // ’ truncated ’ local shrinkage parameter
   real < lower =0 > c; // slab scale
-  vector [ d] beta ; // regression coefficients
-  vector [ n] f; // latent function values
+  vector[ d] beta ; // regression coefficients
+  vector[ n] f; // latent function values
   sigma = exp ( logsigma );
   lambda = aux1_local .* sqrt ( aux2_local );
   tau = aux1_global * sqrt ( aux2_global ) * scale_global * sigma ;
