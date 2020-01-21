@@ -1,30 +1,67 @@
 ---
-title: "03-methodology"
+title: "Methods"
 author: "Raven McKnight"
 date: "1/16/2020"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: paper
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Poisson Regression
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Each model presented in this honors is built upon a simple Poisson regression. Poisson regressions are used to model count data and assume that the natural log of the mean of response variable $Y$ can be modeled by a linear combination of predictors. Poisson regressions are a form of generalized linear models with the natural log as its link function. For response variable $Y$ and covariates $x_1, x_2, ..., x_k$, the basic Poisson regression can be written 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-```
+\begin{align}
+\tag{1}
+Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
+\eta_i  = log(\lambda_i) & = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k \\
+\end{align}
 
-## Including Plots
+where $\beta_0$ is an optional intercept term and $E_i$ is an offset term. The offset $E_i$ is often termed "exposure" in applications such as disease risk modeling where the offset may be the number of observed cases in a previous year, etc. 
 
-You can also embed plots, for example:
+The most obvious assumption made in a Poisson regression is that response variable $Y$ follows a Poisson distribution. The primary assumption this makes about our data is that $\text{Var}(Y) = \text{E}(Y)$. When this assumption is not met, we can either use a generalization of the Poisson distribution, such as a Negative-Binomial distribution, or add a parameter to account for extra-Poisson variance. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+For the purposes of this study, we can add a set of heterogeneous random effects $\theta$ to account for overdispersion (where Var($Y$) > E($Y$)). Following **cite mitzi morris**, the second line of **(1)** can be written
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+\begin{align}
+\tag{2}
+\eta_i = log(\lambda_i) & = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k + \theta \sigma
+\end{align}
+
+where $\theta$ and $\sigma$ are given normal priors centered around 0, such as $\theta \sim$ Normal(0, 1) and $\sigma \sim$ Normal(0, 5). The addition of these random effects improve fits on data with higher-than-expected variance. 
+
+# Horseshoe Priors and Variable Selection
+
+Often, the coefficients $\beta_1, ..., \beta_k$ are given simple normal priors such as $\beta_k \sim$ Normal(0, 1) in the case of standardized parameters. When parameter vector $x$ contains many possible covariates, we may reasonably assume that some entries in $\beta$ are 0 -- in other words, that some of the parameters in $x$ have no effect on $Y$. In such a case, it is beneficial to use *sparsity inducing priors* on $\beta$ to ensure that irrelevant parameter coefficients are shrunk to 0. 
+
+In frequentist applications, methods such as the LASSO (Least Absolute Shrinkage and Selection Operator) are employed for this type of variable selection. In the Bayesian setting, shrinkage and regularization can be performed using a variety of different priors on $\beta$. **Cite van Erp etc** provide an introduction to many such continuous priors. Ridge regression and the Bayesian LASSO are two of the most approchable sparse regression priors. The horseshoe prior, proposed by **Carvalho et al., 2010**, is another popular choice in Bayesian literature **()** (somehow this accidentally came out sounding exactly like van Erp). Following the notation of **Vehtari**, the horsehoe prior can be written
+
+\begin{align}
+\tag{3}
+\beta_k \text{ | } \lambda_k, \tau & \sim \text{Normal}(0, \tau^2\lambda_k^2) \\
+\lambda_k & \sim \text{Half-Cauchy}(0, 1)
+\end{align}
+
+for $k = 1, 2, ..., K$. The horseshoe prior is so-named because for fixed values $\tau = \lambda = 1$, the prior resemebles a Beta(1/2, 1/2) distribution, or a horseshoe. 
+
+The horseshoe is often favored because it is a global-local shrinkage prior. This means that $\tau$ shrinks *all* parameters towards 0 while the local parameter $\lambda_k$ and the heavy Cauchy tails allow larger coefficients to remain unshrunk. While this is precisely the goal of a sparsity inducing prior, the horseshoe prior can fail to regularize lrage coefficients *at all*, which can be a problem when parameters are weakly identified by data. Additionally, there is no consensus in the literature for assigning priors to $tau$. **Vehatari..** introduced the *regularized horseshoe* to address both of these shortcomings. The regularized horseshoe builds upon **(3)** such that
+
+\begin{align}
+\beta_k \text{ | } \lambda_j, \tau, c & \sim \text{Normal}(0, \tau^2 \tilde{\lambda_k^2}) \\
+\tilde{\lambda_k^2} & = \frac{c^2\lambda_k^2}{c^2 + \tau^2\lambda_k^2} \\
+\lambda_k & \sim \text{Half-Cauchy}(0, 1) \\
+c & \sim ~ \text{Inverse-Gamma}(a, b)
+\end{align}
+
+where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches infinity, the regularized horseshoe becomes the standard horseshoe. **This is a place where my understanding is weak**
+
+# Spatial Structure
+
+In general, we expect areas with 
