@@ -60,7 +60,7 @@ model {
   aux1_local ~ normal(0, 1);
   aux2_local ~ inv_gamma(0.5*nu_local, 0.5*nu_local);
   aux1_global ~ normal(0, 1);
-  aux2_global ~ inv_gamma(0.5, nu_global, 0.5*nu_global);
+  aux2_global ~ inv_gamma(0.5*nu_global, 0.5*nu_global);
   caux ~ inv_gamma(0.5*slab_df, 0.5*slab_df);
   beta_0 ~ normal(0, scale_icept);
   // and the model 

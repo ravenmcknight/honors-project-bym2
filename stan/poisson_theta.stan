@@ -24,7 +24,7 @@ parameters {
 }
 model {
   // model
-  y ~ poisson_log(log_E + beta_0 + x*betas + theta);  
+  y ~ poisson_log(beta_0 + x*betas + theta);  
   // normal priors on everything for now
   beta_0 ~ normal(0.0, 1);
   betas ~ normal(0.0, 1);

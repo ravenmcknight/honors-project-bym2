@@ -32,13 +32,42 @@ The Transit Market Index values are geographically smoothed to create more-or-le
 
 ## Data Description
 
+### Metro Transit Data
+
+### Covariates
+
 ## Data Preperation
 
 ## Modeling
 
 ### Poisson Regression
 
+The baseline Poisson regression can be fit easily in Stan. This simplest model in this case study can be written 
+
+\begin{align}
+Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
+\eta_i  = log(\lambda_i) & = \beta_0 + \sum_{k=1}^{19}x_k^T\beta_k \\
+\beta_0, \beta & \sim \text{Normal}(0, 1) \\
+\end{align}
+
+where $Y_i$ is the number of boardings in census block group $i$ in 2017, $E_i$ is the number of bus stops made in block group $i$ in 2017, and parameter vector $x$ corresponds to the covariates discussed above. **Figure ...** shows this model written in Stan. 
+
+```{r}
+# FIND A BETTER WAY TO PRINT THIS
+writeLines(readLines("~/Documents/honors/honors-project/stan/poisson.stan"))
+```
+
+
 ### Horseshoe Prior
+
+The model above does a decent job predicting ridership but there are many possible improvements. One shortcoming of the simplest Poisson model is that the normal priors on $\beta$ make it challenging to determine which coefficients are truly significantly different from 0. This is where the regularized horseshoe prior comes into play. 
+
+This model can be expressed in Stan as pictured in **Figure...**. The Stan program for this model was adapted from **Vehtari..**. 
+
+```{r}
+writeLines(readLines("~/Documents/honors/honors-project/stan/poisson_horseshoe.stan"))
+```
+
 
 ### Overdispersion
 
