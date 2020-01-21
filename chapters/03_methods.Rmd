@@ -39,28 +39,45 @@ where $\theta$ and $\sigma$ are given normal priors centered around 0, such as $
 
 # Horseshoe Priors and Variable Selection
 
-Often, the coefficients $\beta_1, ..., \beta_k$ are given simple normal priors such as $\beta_k \sim$ Normal(0, 1) in the case of standardized parameters. When parameter vector $x$ contains many possible covariates, we may reasonably assume that some entries in $\beta$ are 0 -- in other words, that some of the parameters in $x$ have no effect on $Y$. In such a case, it is beneficial to use *sparsity inducing priors* on $\beta$ to ensure that irrelevant parameter coefficients are shrunk to 0. 
+Often, the coefficients $\beta_1, ..., \beta_k$ are given simple normal priors such as $\beta_k \sim$ Normal(0, 1) in the case of standardized parameters. When parameter vector $x$ contains many possible covariates, we may reasonably assume that some entries in $\beta$ are 0 -- in other words, that some of the parameters in $x$ have no effect on $Y$. In frequentist applications, we might use a method such as the LASSO (Least Absolute Shrinkage and Selection Operator) to identify relevant variables. 
 
-In frequentist applications, methods such as the LASSO (Least Absolute Shrinkage and Selection Operator) are employed for this type of variable selection. In the Bayesian setting, shrinkage and regularization can be performed using a variety of different priors on $\beta$. **Cite van Erp etc** provide an introduction to many such continuous priors. Ridge regression and the Bayesian LASSO are two of the most approchable sparse regression priors. The horseshoe prior, proposed by **Carvalho et al., 2010**, is another popular choice in Bayesian literature **()** (somehow this accidentally came out sounding exactly like van Erp). Following the notation of **Vehtari**, the horsehoe prior can be written
+## Spike and Slab 
+
+In the Bayesian setting, there are two primary methods for variable selection. The first is called the "spike-and-slab" prior **(cite)** and has often been considered the "gold standard" for sparse Bayesian regression, or variable selection **(Vehtari)**. This prior is often expressed as 
 
 \begin{align}
 \tag{3}
+\beta_j | \lambda_j, c, \epsilon & \sim \lambda_j \text{Normal}(0, c^2) + (1-\lambda_j)\text{Normal}(0, \epsilon^2) \\
+\lambda_j & \sim \text{Bernoulli}(\pi)
+\end{align}
+
+for $j = 1, 2, ..., J$ where $\lambda_j \in {0, 1}$ indicates whether $\beta_j$ is from the "spike" (ie, near zero) or the "slab" (ie, nonzero). Priors must be set for the width of the slab $c$ and the prior inclusion probability $\pi$. Here, $\pi$ reflects our prior understanding of the sparsity of $\beta$. 
+
+## Horseshoe
+
+The second method for Bayesian sparse regression is to give $\beta$ some continuous *sparsity inducing prior*. **Van Erp et al** provide an introduction to many such continous priors. Ridge regression and the Bayesian LASSO are two of the most approachable priors, but all sparsity inducing priors utilize the same logic: give $\beta$ a prior with *most* of its mass near 0, to shrink irrelevant coefficients, and the rest of its mass "far" from 0. Identifying "far" depends more or less on the specific data and model in question. 
+
+The horseshoe prior, proposed by **Carvalho et all, 2010** is a popular choice in Bayesian literature, in part because it is similar to the "gold standard" spike-and-slab. Following the notation of **Vehtari & Pironeen**, the horseshoe prior can be expressed
+
+\begin{align}
+\tag{4}
 \beta_k \text{ | } \lambda_k, \tau & \sim \text{Normal}(0, \tau^2\lambda_k^2) \\
 \lambda_k & \sim \text{Half-Cauchy}(0, 1)
 \end{align}
 
-for $k = 1, 2, ..., K$. The horseshoe prior is so-named because for fixed values $\tau = \lambda = 1$, the prior resemebles a Beta(1/2, 1/2) distribution, or a horseshoe. 
+for $k = 1, 2, ..., K$. The horseshoe prior is so-named because for fixed values $\tau = \lambda_k = 1$, the prior resemebles a Beta(1/2, 1/2) distribution, or a horseshoe. 
 
-The horseshoe is often favored because it is a global-local shrinkage prior. This means that $\tau$ shrinks *all* parameters towards 0 while the local parameter $\lambda_k$ and the heavy Cauchy tails allow larger coefficients to remain unshrunk. While this is precisely the goal of a sparsity inducing prior, the horseshoe prior can fail to regularize lrage coefficients *at all*, which can be a problem when parameters are weakly identified by data. Additionally, there is no consensus in the literature for assigning priors to $tau$. **Vehatari..** introduced the *regularized horseshoe* to address both of these shortcomings. The regularized horseshoe builds upon **(3)** such that
+The horseshoe is often favored because it is a global-local shrinkage prior. This means that $\tau$ shrinks *all* parameters towards 0 while the local parameter $\lambda_k$ and the heavy Cauchy tails allow larger coefficients to remain unshrunk. While this is precisely the goal of a sparsity inducing prior, the horseshoe prior can fail to regularize large coefficients *at all*, which can be a problem when parameters are weakly identified by data. Additionally, there is no consensus in the literature for assigning priors to $tau$. **Vehatari..** introduced the *regularized horseshoe* to address both of these shortcomings. The regularized horseshoe builds upon **(3)** such that
 
 \begin{align}
+\tag{5}
 \beta_k \text{ | } \lambda_j, \tau, c & \sim \text{Normal}(0, \tau^2 \tilde{\lambda_k^2}) \\
 \tilde{\lambda_k^2} & = \frac{c^2\lambda_k^2}{c^2 + \tau^2\lambda_k^2} \\
 \lambda_k & \sim \text{Half-Cauchy}(0, 1) \\
 c & \sim ~ \text{Inverse-Gamma}(a, b)
 \end{align}
 
-where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches infinity, the regularized horseshoe becomes the standard horseshoe. **This is a place where my understanding is weak**
+where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches infinity, the regularized horseshoe becomes the standard horseshoe. **This is a place where my understanding is weak** Using the spike-and-slab as intuition, c corresponds to the width of the slab. **Double check this, but I think** This is, in essence, how we describe "far" from 0. 
 
 # Spatial Structure
 
