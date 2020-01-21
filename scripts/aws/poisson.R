@@ -40,7 +40,8 @@ saveRDS(poisson_fit, '~/Documents/honors/honors-project/final-fits/poisson_fit.R
 ## add horseshoe priors -------------------------
 
 poisson_hrs <- "~/Documents/honors/honors-project/stan/poisson_horseshoe.stan"
-poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, warmup = 100, iter = 200, verbose = T)
+poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 2000, verbose = T,
+                        control = list(adapt_delta = 0.9999, max_treedepth = 15))
 
 
 ## add overdispersion parameter -----------------
