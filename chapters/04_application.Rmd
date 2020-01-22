@@ -69,6 +69,16 @@ writeLines(readLines("~/Documents/honors/honors-project/stan/poisson_horseshoe.s
 ```
 
 
+#### Divergences
+
+After running four chains for 10,000 iterations each, this model does produce some *divergences*. **This means I should explain what a divergence is** To be exact, this model produces 30 divergent transtions out of 20,000 post-warmup transitions, for a divergent rate of 0.15%. Divergencies are a diagnostic particular to the HMC and NUTS samplers used by Stan. 
+
+#### Variables Selected
+
+Perhaps surprisingly, the use of  horseshoe priors only suggests the removal of four variables: __, __, __, __. This is likely because the initial set of covariates were selected based on domain knowledge and therefore, it was unlikely for $\beta$ to be exceedingly sparse. The application of the horseshoe prior would be more informative in a data set with more parameters, and with less insight into the selection of the initial covariate vector $x$. 
+
 ### Overdispersion
+
+For computational efficiency, we can drop the horseshoe priors for this model. Armed with the information provided by our fist two models, we can simply give $\beta$ tigher normal priors. 
 
 ### Spatial Structure

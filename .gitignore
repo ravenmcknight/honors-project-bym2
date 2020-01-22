@@ -6,3 +6,4 @@ data/
 .Rdata
 fits/
 *.html
+final-fits/

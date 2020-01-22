@@ -17,16 +17,17 @@ parameters {
   // intercept
   real beta_0;      
   // covariates
-  vector[K] betas;          
+  vector[K] beta;          
+}
+transformed parameters{
+  // latent function variables
+  vector[N] f;
+  f = log_E + beta_0 + x*beta;
 }
 model {
   /// model 
-  y ~ poisson_log(log_E + beta_0 + x*betas); 
+  y ~ poisson_log(f); 
   // prior on betas
   beta_0 ~ normal(0.0, 3);
-  betas ~ normal(0.0, 1);
-}
-generated quantities {
-  vector[N] eta = beta_0 + x*betas;
-  vector[N] lambda = exp(eta);
+  beta ~ normal(0.0, 1);
 }

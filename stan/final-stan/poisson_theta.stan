@@ -1,5 +1,4 @@
 data {
-
   // number obs
   int<lower=0> N;
   // response
@@ -18,19 +17,22 @@ parameters {
   // intercept
   real beta_0;      
   // covariates
-  vector[K] betas; 
+  vector[K] beta;   
   // overdispersion
-  vector[N] theta;  
+  vector[N] theta;
+}
+transformed parameters{
+  // latent function variables
+  vector[N] f;
+  f = log_E + beta_0 + x*beta + theta;
 }
 model {
-  // model
-  y ~ poisson_log(beta_0 + x*betas + theta);  
-  // normal priors on everything for now
+  /// model 
+  y ~ poisson_log(f); 
+  // prior on betas
   beta_0 ~ normal(0.0, 1);
-  betas ~ normal(0.0, 1);
-  theta ~ normal(0.0, 1);
+  beta ~ normal(0.0, 0.2);
+  // overdispersion
+  theta ~ normal(0, 1);
 }
-generated quantities {
-  vector[N] eta = beta_0 + x*betas + theta;
-  vector[N] lambda = exp(eta);
-}
+

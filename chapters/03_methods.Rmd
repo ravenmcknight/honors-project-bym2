@@ -82,3 +82,13 @@ where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches i
 # Spatial Structure
 
 In general, we expect areas with 
+
+
+# Stan
+
+## HMC/NUTS Sampling
+
+## Divergent Transitions
+
+
+# Graphic Diagnostics, PPcheck, etc
