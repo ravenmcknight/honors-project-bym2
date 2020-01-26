@@ -28,10 +28,30 @@ x <- as.matrix(ncol = K, xdat)
 
 standat1 <- list(y = y, E = E, x = x, K = K, N = N)
 
-horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N, 
-                      scale_icept = 3, scale_global = 0.2, 
+
+# original fit
+# horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N, 
+#                       scale_icept = 2, scale_global = 0.2, 
+#                       nu_global = 1, nu_local = 1,
+#                       slab_scale = 2, slab_df = 4) 
+
+# new params
+# horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N, 
+#                       scale_icept = 2, scale_global = 0.2, 
+#                       nu_global = 1, nu_local = 1,
+#                       slab_scale = 1/2, slab_df = 1) 
+
+# new params 2
+# horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N, 
+#                       scale_icept = 2, scale_global = 1, 
+#                       nu_global = 1, nu_local = 1,
+#                       slab_scale = 1/2, slab_df = 1) 
+
+# new params 3
+horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N,
+                      scale_icept = 2, scale_global = 0.002,
                       nu_global = 1, nu_local = 1,
-                      slab_scale = 2, slab_df = 4)
+                      slab_scale = 1, slab_df = 24)
 
 ## basic poisson --------------------------------
 
@@ -61,7 +81,7 @@ pois <- pp_check(y, samp[1:100, ], ppc_dens_overlay) +
 poisson_hrs <- "~/Documents/honors/honors-project/stan/final-stan/poisson_horseshoe.stan"
 poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 10000, verbose = T,
                         control = list(adapt_delta = 0.99, max_treedepth = 15))
-saveRDS(poisson_hrs_fit, '~/Documents/honors/honors-project/final-fits/poisson_hrs_fit.RDS')
+saveRDS(poisson_hrs_fit, '~/Documents/honors/honors-project/final-fits/poisson_hrs_fit_new_params_3.RDS')
 
 #poisson_hrs_fit <- readRDS('~/Documents/honors/honors-project/final-fits/poisson_hrs_fit.RDS')
 
