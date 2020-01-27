@@ -6,9 +6,9 @@ library(ggplot2)
 
 ## for testing
 
-post <- readRDS("~/Documents/honors/honors-project/final-fits/poisson_fit.RDS")
+post <- readRDS("~/Documents/honors/honors-project/test_post.RDS")
 n_obs = 1495
-n_iter = 20000
+n_iter = 2000
 
 # function will take stanfit, observed y, number observations, number iterations, pars for trace, 
 
@@ -51,7 +51,21 @@ ppcheck <- function(post, y, n_obs, n_iter){
   
   ## loo
   
+  loglik <- as.matrix(post, pars = "log_lik")
+  loo <- loo(loglik)
+  psis <- psislw(-loglik)
+  pit <- rstantools::loo_pit(object = yrep, y=y, lw = as.matrix(psis$lw_smooth))
+  
+  unifs <- matrix(runif(length(pit) * 100), nrow = 100)
+  coords <- coord_cartesian(ylim = c(0, 2), xlim = c(0.1, 0.9))
+  
+  ppc_dens_overlay(pit, unifs) + legend_none() + coords
+  
+  
+  ## quadrant
   
   ## map
+  
+  
 }
 

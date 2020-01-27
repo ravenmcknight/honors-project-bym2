@@ -103,10 +103,13 @@ As with the spike-and-slab, the selection of priors is a challenge with the regu
 
 When modeling data with a spatial component, we generally expect adjacent areas to be more similar than areas which are far apart. While this is a straightforward assumption, it can improve model fits in several ways. First, it can encode prior information about response $Y$ not otherwise represented by covariates $x$ (ie, that nearby observations are more similar than far flung ones). Second, it can provide geographic smoothing when observations are sparse or noisy. This is often the case in small areas or when observing events which can only occur at specific locations, such as air quality measured by sensors. 
 
+## Spatial Autocorrelation
+
 
 ## Conditional Autoregressive Priors
 
-### This whole section follows Morris et al (probably too) closely right now -- encorporate more from Riebler, Simpson, Besag
+### This whole section follows Morris et al (probably too) closely right now -- incorporate more from Riebler, Simpson, Besag
+
 We can encode spatial information into Bayesian models in several ways. Conditional Autoregressive (CAR) priors are one of the most widespread Bayesian methods for modeling spatial autocorrelation. Conditional Autoregressive models were introduced in Besag 1974 and remain perhaps the primary method for Bayesian areal data modeling. CAR models are used as $priors$, not as the actual observation model. 
 
 Areal data corresponds to finitely many discrete areal units, such as counties or census tracts. Counts in areal units tend to be noisy, particularly when the counted event is rare, the population of areal unit $i$ is small, or the phsyical boundaries of areal units form unusual patterns in the data. Conditonal Autoregressive models combine information from areal unit $i$ as well as its neighbors to smooth noisy counts. 
@@ -126,7 +129,7 @@ $$
 \phi \sim \text{Normal}(0, Q^{-1})
 $$
 
-Precision matrix $Q$ can be defined for multivariate normal $\phi$ using two other $M$x$M$ matrices: the neighborhood matrix $W$ as well as diagonal matrix $D$ in which $d_{ii}$ indicates the number of neighbors region $i$ has. All off-diagonal entries are 0. Using these matrices, $Q$ is defined
+Precision matrix $Q$ can be defined for multivariate normal $\phi$ using two other $N$x$N$ matrices: the neighborhood matrix $W$ as well as diagonal matrix $D$ in which $d_{ii}$ indicates the number of neighbors region $i$ has. All off-diagonal entries are 0. Using these matrices, $Q$ is defined
 
 $$
 Q = D(I - \alpha W)
@@ -232,7 +235,7 @@ Divergent transitions are perhaps the most important "diagnostic", or warning, S
 
 # Graphic Diagnostics, PPcheck
 
-Various graphical checks of priors and posteriors are helpful tools in building, improving, and comparing Bayesian models. The application portion of this honors follows Michael Betancourt's "Towards a Principled Bayesian Workflow" as well as ______ in terms of using visual aids for diagnosing issues with models and comparing quality of fit between models. Only the most "useful" plots are included below, for more on using graphics throughout a Bayesian workflow see Betancourt or Gabry.
+Various graphical checks of priors and posteriors are helpful tools in building, improving, and comparing Bayesian models. The application portion of this honors follows Michael Betancourt's "Towards a Principled Bayesian Workflow" as well as Gabry et al's "Visualization in a Bayesian Workflow" in terms of using visual aids for diagnosing issues with models and comparing quality of fit between models. Only the most "useful" plots are included below, for more on using graphics throughout a Bayesian workflow see Betancourt or Gabry.
 
 
 
