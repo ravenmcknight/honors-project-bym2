@@ -2,9 +2,9 @@
 title: "Methods/Lit Review"
 author: "Raven McKnight"
 output:
+  pdf_document:
+    number_sections: true
   word_document:
-    toc: yes
-  pdf_document: null
   html_document:
     theme: paper
     toc: yes
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Poisson Regression
 
-Each model presented in this honors is built upon a simple Poisson regression. Poisson regressions are used to model count data. The model assumes that the natural log of the mean of response variable $Y$ can be modeled by a linear combination of predictors. Poisson regressions are a form of generalized linear models with the natural log as its link function. For response variable $Y$ and covariates $x_1, x_2, ..., x_k$, the basic Poisson regression can be written 
+Each model presented in this honors is built upon a simple Poisson regression. Poisson regressions are a form of generalized linear models with the natural log as its link function. They are generally used to model count data. The model assumes that the natural log of the mean of response variable $Y$ can be modeled by a linear combination of predictors. For response variable $Y$ and covariates $x_1, x_2, ..., x_k$, the basic Poisson regression can be written 
 
 
 \begin{align}
@@ -40,21 +40,26 @@ log(\bar{Y}) & = log(E) + \beta^{'}_0 + \sum_{k=1}^{K}x_k^T\beta^{'}_k
 \end{align}
 
 
-The most obvious assumption made in a Poisson regression is that response variable $Y$ follows a Poisson distribution. The primary assumption this makes about our data is that $\text{Var}(Y) = \text{E}(Y)$. When this assumption is not met, we can either use a generalization of the Poisson distribution, such as a Negative-Binomial distribution, or add a parameter to account for extra-Poisson variance. 
+In the basic Poisson regression, we often give $\beta_0$ and $\beta$ vague priors such as Normal($0, 1$). The exposure term $E_i$ comes from the data and does not recieve a prior.  
 
-For the purposes of this study, we can add a set of heterogeneous random effects $\theta$ to account for overdispersion (where Var($Y$) > E($Y$)). Following Morris et al (2019), the second line of **1** can be written
+## Overdispersion 
+
+The most obvious assumption made in a Poisson regression is that response variable $Y$ follows a Poisson distribution. In addition to requiring integer counts, this assumption requires that $\text{Var}(Y) = \text{E}(Y)$. This is often not true in practice. In the case of the Metro Transit ridership data, $\text{Var}(Y) \approx 7*\text{E}(Y)$. In this case, we call the unexpectedly large variance "overdispersion" or "extra-Poisson variance." 
+
+Data with this feature can be difficult to model directly with a Poisson regression. One option is to use a generalization of the Poisson distribution, such as a Negative-Binomial distribution, as the observation model. For the Metro Transit case study, we instead modify the latent function to include a seperate term to account for overdispersion. As such, the Poisson regression above can be rewritten to include
 
 \begin{align}
 \eta_i = log(\lambda_i) & = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k + \theta
 \end{align}
 
-where $\theta$ is given a vague normal prior centered around 0, such as $\theta \sim$ Normal(0, 1). The addition of these random effects improve fits on data with higher-than-expected variance. With sufficiently vague priors, $\theta$ can account for most or all overdispersion not accounted for by $\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k$. 
+where $\theta$ is a set of heterogenous random effects. The addition of this random effects term improves fits on data with overdispersion. With sufficiently vague priors, $\theta$ can account for most or all of the overdispersion not accounted for by $\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k$. 
+
 
 # Horseshoe Priors and Variable Selection
 
 Often, the coefficients $\beta_1, ..., \beta_k$ are given simple normal priors such as $\beta \sim$ Normal(0, 1) in the case of standardized parameters. When parameter vector $x$ contains many possible covariates, we may reasonably assume that some entries in $\beta$ are 0 -- in other words, that some of the parameters in $x$ have no effect on $Y$. In frequentist applications, we might use a method such as the LASSO (Least Absolute Shrinkage and Selection Operator) to identify relevant variables. There are several Bayesian alternatives for variable selection which generally consist of applying particularl priors to $\beta$. 
 
-## Spike and Slab 
+## Spike and Slab -- needs graphics
 
 In the Bayesian setting, there are two primary methods for variable selection. The first is called the "spike-and-slab" prior (Mitchell and Beauchamp, 1988; George and McCulloch, 1999) and has often been considered the "gold standard" for sparse Bayesian regression, or variable selection (Piironen and Vehtari, 2017). This prior is often expressed as 
 
@@ -67,11 +72,11 @@ for $j = 1, 2, ..., J$ where $\lambda_j \in {0, 1}$ indicates whether $\beta_j$ 
 
 The primary challenge with the spike-and-slab (and other Bayesian shrinkage methods) is the selction of priors. Priors must be set for the width of the slab $c$ and the prior inclusion probability $\pi$. Here, $\pi$ reflects our prior understanding of the sparsity of $\beta$. In practice, we rarely have strong prior knowledge of the number of predictors we expect to be distinguishable from zero. This can make the implementation of sparse regression more challenging than, say, the frequentist LASSO. 
 
-## Horseshoe
+## Horseshoe and Regularized Horseshoe -- needs graphics
 
 The second method for Bayesian sparse regression is to give $\beta$ some continuous *sparsity inducing prior*. **Van Erp et al (2019)** provide an introduction to many such continous priors. Ridge regression and the Bayesian LASSO are two of the most approachable priors, but all sparsity inducing priors utilize the same logic: give $\beta$ a prior with *most* of its mass near 0, to shrink irrelevant coefficients, and the rest of its mass "far" from 0. Identifying "far" depends more or less on the specific data and model in question. 
 
-The horseshoe prior, proposed by **Carvalho et all, 2010** is a popular choice in Bayesian literature, in part because it is similar to the "gold standard" spike-and-slab. Following the notation of **Vehtari & Pironeen**, the horseshoe prior can be expressed
+The horseshoe prior, proposed by **Carvalho et al, 2010** is a popular choice in Bayesian literature, in part because it is similar to the "gold standard" spike-and-slab. Following the notation of **Vehtari & Piironen**, the horseshoe prior can be expressed
 
 \begin{align}
 \beta_k \text{ | } \lambda_k, \tau & \sim \text{Normal}(0, \tau^2\lambda_k^2) \\
@@ -94,27 +99,25 @@ where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches i
 As with the spike-and-slab, the selection of priors is a challenge with the regularized horseshoe...
 
 
-# Spatial Structure
+# Spatial Structure -- needs many graphics
 
 When modeling data with a spatial component, we generally expect adjacent areas to be more similar than areas which are far apart. While this is a straightforward assumption, it can improve model fits in several ways. First, it can encode prior information about response $Y$ not otherwise represented by covariates $x$ (ie, that nearby observations are more similar than far flung ones). Second, it can provide geographic smoothing when observations are sparse or noisy. This is often the case in small areas or when observing events which can only occur at specific locations, such as air quality measured by sensors. 
 
 
 ## Conditional Autoregressive Priors
 
-### This whole section follows Morris et al (probably too) closely right now
-
+### This whole section follows Morris et al (probably too) closely right now -- encorporate more from Riebler, Simpson, Besag
 We can encode spatial information into Bayesian models in several ways. Conditional Autoregressive (CAR) priors are one of the most widespread Bayesian methods for modeling spatial autocorrelation. Conditional Autoregressive models were introduced in Besag 1974 and remain perhaps the primary method for Bayesian areal data modeling. CAR models are used as $priors$, not as the actual observation model. 
 
 Areal data corresponds to finitely many discrete areal units, such as counties or census tracts. Counts in areal units tend to be noisy, particularly when the counted event is rare, the population of areal unit $i$ is small, or the phsyical boundaries of areal units form unusual patterns in the data. Conditonal Autoregressive models combine information from areal unit $i$ as well as its neighbors to smooth noisy counts. 
 
-Generally, CAR models use binary neighborhood relationships encoded in a neighborhood matrix. Areal units $i$ and $j$ are considered neighbors if they share a boundary. For strictly rectangualar lattice data, we often choose either a "Queens" or "Rooks" neighborhood structures **(include graphic)**. For irregularly shaped areal units, such as census tracts, we generally default to a queen neighborhood structure wherein areal units that share *any* points of contact are deemed neighbors. For $M$ regions represented in a $M$x$M$ neighborhood matrix $W$, $w_{ij} = 1$ if regions $i$ and $j$ are neighbors and 0 otherwise. Matrix $W$ is symmetric. Note that regions $i$ are not considered neighbors with themselves. 
+Generally, CAR models use binary neighborhood relationships encoded in a neighborhood matrix. Areal units $i$ and $j$ are considered neighbors if they share a boundary. For strictly rectangualar lattice data, we often choose either a "Queens" or "Rooks" neighborhood structures **(include graphic)**. For irregularly shaped areal units, such as census tracts, we generally default to a queen neighborhood structure wherein areal units that share *any* points of contact are deemed neighbors. For $N$ regions represented in a $N$x$N$ neighborhood matrix $W$, $w_{ij} = 1$ if regions $i$ and $j$ are neighbors and 0 otherwise. Matrix $W$ is symmetric. Note that regions $i$ are not considered neighbors with themselves. 
 
-The spatial interactions between $i$ and $j$ are represented by random variable $\phi$. Here, $\phi$ is a vector $\phi = \phi_1, \phi_2, ..., \phi_M$. The distribution of each $\phi_i$ is determined by the sum of its neighbors values such that
+The spatial interactions between $i$ and $j$ are represented by random variable $\phi$. Here, $\phi$ is a vector $\phi = \phi_1, \phi_2, ..., \phi_N$. The distribution of each $\phi_i$ is determined by the sum of its neighbors values such that
 
-# having a notation crisis 
 
 $$
-\phi_i \text{ | } \phi_j, j \neq i \sim \text{Normal}(\sum_{i=1}^{M}w_{ij}\phi_j, \sigma^2) 
+\phi_i \text{ | } \phi_j, j \neq i \sim \text{Normal}(\sum_{i=1}^{N}w_{ij}\phi_j, \sigma^2) 
 $$
 
 Besag (1974) proved that the joint distribution of $\phi$ is a multivariate normal centered at 0 where its variance is given by a symmetric positive definite precision matrix $Q$. Matrix $Q$ is simply the inverse of the covariance matrix $\sum$. This finding simplifies the above to
@@ -155,56 +158,62 @@ $$
 
 This reduces the computational expense of computing CAR models significantly. Notably, the ICAR prior is improper but yields proper posteriors (Morris et al, 2019). 
 
-The ICAR specifies each $\phi_i$ to be normally distributed with its mean equal to the mean of its neighbors values. This is how the CAR/ICAR model "borrows strength" from geographic neighbors to smooth noisy estimates. Intuitively, the variance of each $\phi_i$ decreases as its number of neighbors $d_i$ increases. The conditional distribution for each $\phi_i$ can be written 
+The ICAR prior specifies each $\phi_i$ to be normally distributed with its mean equal to the mean of its neighbor's values. This is how the CAR/ICAR model "borrows strength" from geographic neighbors to smooth noisy estimates. Intuitively, the variance of each $\phi_i$ decreases as its number of neighbors $d_i$ increases. The conditional distribution for each $\phi_i$ can be written 
 
 $$
 \text{p}(\phi_i \text{ | } \phi_{i \sim j}) = \text{Normal}(\frac{\sum_{i \sim j}\phi_i}{d_i}, \frac{\sigma_i^2}{d_i})
 $$
  
-Here, the variance $\sigma$ is unknown. The conditional specification of each $\phi_i$ is helpful in building intuition about the assumptions the ICAR component makes and how it performs its "smoothing". The joint distribution can be rewritten 
+Here, the variance $\sigma$ is unknown. The conditional specification of each $\phi_i$ is helpful in building intuition about the assumptions the ICAR component makes and how it performs its "smoothing". The ICAR prior matches our intuition about spatial autocorrelation: areal unit $i$ is similar to the areal units surrounding it, and the more areal units surround it, the more confident we feel in that similarity. The joint distribution can be rewritten 
 
 $$
 \text{p}(\phi) \propto \text{exp}(-\frac{1}{2}\sum_{i \sim j}(\phi_i - \phi_j)^2)
 $$
 
-This pairwise difference specification is also helpful in building intuition about how ICAR models perform smoothing. 
+This pairwise difference specification is also helpful in building intuition about how ICAR models perform smoothing. Each $(\phi_i - \phi_j)^2$ works as a penalty term: the ???
 
 ## BYM and BYM2
 
-The specific ICAR model used in this analysis is the Besag-York-Mollie (BYM) Poisson model. The BYM model contains random effects and a spatial ICAR term to account for both spatial and non-spatial heterogeneity. Note that in **section??*, we introduced a random effect term $\theta$. Therefore, the BYM model can be though of as decomposing $\theta$ into spatial and non-spatial components. 
+The specific ICAR model used in this analysis is the Besag-York-Mollie (BYM) Poisson model. The BYM is a "classical" spatial Bayesian method (Riebler et al, 2016). It is generally used in disease mapping studies to model rare events (ie, disease occurrence) in small areal units. The BYM capitalizes on the CAR prior's ability to smooth noisy estimates and share information across geographic units. 
 
-Specifically, the BYM model is written 
+The latent function in the BYM model contains heterogeneous random effects as well as a spatial ICAR term in order to account for both spatial and non-spatial heterogeneity. Note that in Section 1.1, we introduced a random effect term $\theta$. Therefore, the BYM model can be though of as decomposing $\theta$ into spatial and non-spatial components. 
+
+Specifically, the BYM model replaces $\eta_i$ from equation *1* with
 
 $$
 \eta_i = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k + \theta + \phi
 $$
 
-where $\phi$ is the addition: an ICAR component. 
+where $\phi$ is the addition: an ICAR component. Decomposing overdispersion as such is helpful in furthering our understanding of response $Y$. When we use a simple random effect $\theta$ alone, we can accomplish a good model fit. However, $\theta$ provides no additional information about $Y$ or why it varies so much. The decomposition of $\theta$ in the BYM allows us to better quantify how much variance is white noise (ordinary random effects) versus some unmeasured confounding correlated across space. 
 
-The BYM model is appealing in its simplicity. However, the lack of hyperpriors specified for $\theta$ and $\phi$ can make the model incredibly challenging to fit. In theory, extra-Poisson variance could be explained 100% by $\theta$, 100% by $\phi$, or anywhere in between. In *practice*, we likely have limited information about where that ratio falls. Riebler et al (2016) further explain the sampling issues faced by the BYM model faced with no hyperpriors. In short, the sampler is forced to explore all possible combinations of $\theta$ and $\phi$, no matter how unlikely a particular combination my be. In the context of fitting models with Stan, this is liekly to cause uneccesarily long computation times and perhaps to yield biased posterior estimates. 
+The BYM model as written above is appealing in its simplicity. However, the lack of informative hyperpriors specified for $\theta$ and $\phi$ can make the model incredibly challenging to fit. In theory, extra-Poisson variance could be explained 100% by $\theta$, 100% by $\phi$, or anywhere in between. In *practice*, we likely have limited information about where that ratio falls. Riebler et al (2016) further explain the sampling issues faced by the BYM model faced with no hyperpriors. In short, the sampler is forced to explore all possible combinations of $\theta$ and $\phi$, no matter how unlikely a particular combination my be. In the context of fitting models with Stan, this is liekly to cause uneccesarily long computation times and perhaps to yield biased posterior estimates. 
 
-There are some suggestions in the literature for setting hyperpriors for $\theta$ and $\phi$ (Besag and Mollie, 1991; Clayton and Montomoli, 1995). The existing methods, however, tend to rely on the specific data at hand which makes the selection of hyperparameters time unnecessarily time consuming. 
+There are some suggestions in the literature for setting hyperpriors for $\theta$ and $\phi$ (Besag and Mollie, 1991; Clayton and Montomoli, 1995). The existing methods, however, tend to rely on the specific data at hand which makes the selection of hyperparameters unnecessarily time consuming. 
 
-The BYM2 model proposed by Simpson et al and further described in Riebler et al (2016) aims to solve these sampling problems. The primary difference between the BYM and BYM2 models is the addition of a mixing parameter, $\rho$. The BYM2 model rewrites the BYM as
+The BYM2 model proposed by Simpson et al and further described in Riebler et al (2016) aims to solve these sampling problems. The BYM2 takes a more "fully Bayesian" approach to hyperprior/hyperparameter selection. The primary difference between the BYM and BYM2 models is the addition of a mixing parameter, $\rho$. The BYM2 model rewrites the BYM as
 
 $$
-\eta_i = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k + ((\sqrt{\frac{\rho}{s}})\theta^{*} + ((\sqrt{1-\rho})\phi)\sigma
+\eta_i = \beta_0 + \sum_{k=1}^{K}x_k^T\beta_k + ((\sqrt{\frac{\rho}{s}})\theta^{*} + ((\sqrt{1-\rho})\phi^{*})\sigma
 $$
 
 where $\rho \in (0, 1)$ determines how much variance/overdispersion is caused by spatial versus non-spatial error terms. Like the popular Leroux CAR prior, proposed by Leroux et al (2009), the BYM2 scales both $\theta$ and $\phi$ by $\sigma$, the standard deviation of the combined error terms (Morris et al, 2019). In this parameterization, $s$ is a scaling factor such that Var($\theta_i$) $\approx$ Var($\phi_i$) $\approx$ 1. The equal unit variance is necessary for $\sigma$ to truly be the standard deviation of the error terms. 
 
 Setting priors is somewhat more straightforward for the BYM2. The ICAR component, $\phi^{*}$ remains unchanged. Riebler and Morris recommend the prior $\theta \sim$ Normal($0, n)$ where $n$ is the number of connected graphs in the neighborhood graph. In many cases, such as modeling data for all counties in a state, $n=1$. When $n>1$, the variance is different in each subgraph which affects $\sigma$ and $s$. It is possible to fit the model in this case, although computation time is much longer. 
 
-A relatively vague Normal(0, 1) prior is appropriate for $\sigma$. Mixing parameter $\rho$ is given a Beta(1/2, 1/2) prior. Similar to the horseshoe, 
+A relatively vague Normal(0, 1) prior is appropriate for $\sigma$. Mixing parameter $\rho$ is given a Beta(1/2, 1/2) prior. Riebler et al (2016) also propose a more complex prior for $\rho$ such that ____ Similar to the horseshoe, 
 
 
 # Stan
 
-The models above can all be fit using the Stan Programming Langauge (cite). Stan is probabilistic programming language used to compute joint log probability densities. 
+The models above can all be fit using the Stan Programming Langauge (cite). Stan is probabilistic programming language used to compute joint log probability densities. The analysis in this honors uses Stan Version ____. 
 
 ## HMC/NUTS Sampling
 
-Stan utilizes the Hamiltonian Monte Carlo (HMC) and specialized No U-Turn Sampler (NUTS). 
+Stan utilizes Hamiltonian Monte Carlo (HMC) and specialized No U-Turn Sampler (NUTS). The technicalities of Stan's sampling process is beyond the scope of this paper. However, there are a few sampling parameters which are important to understand in order to optimize model fits. Specifically, the parameters `max_treedepth` and `adapt_delta` appear in the application portion of this honors. 
+
+The `max_treedepth` argument specifies how many steps the sampler is allowed to make on a given transition. Stan's default max treedepth is 10. When the default is used, the sampler makes up to 10 steps. If it reaches 10 leapfrog steps without ___, the sampler stops for that iteration and Stan informs the user that maximum treedepth has been exceeded. When a model experiences many iterations reaching maximum treedepth, there are several considerations to make. 
+
+The `adapt_delta` argument works hand in hand with `max_treedepth`. 
 
 Include parameters we'll set : treedepth, adapt_delta, what they correspond to mathematically 
 
