@@ -43,3 +43,4 @@ horseshoe_dat <- list(y = y_sim, E = E, x = x, K = K, N = N,
 poisson_hrs <- "~/Documents/honors/honors-project/stan/final-stan/poisson_horseshoe.stan"
 poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 2000, verbose = T, 
                         control = list(max_treedepth = 14, adapt_delta = 0.99))
+saveRDS(poisson_hrs_fit, 'fits/horseshoe_sim_fit.RDS')
