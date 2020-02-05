@@ -66,3 +66,8 @@ model {
   // and the model 
   y ~ poisson_log(f);
 }
+generated quantities {
+  vector[N] log_lik; 
+    for(i in 1:N) log_lik[i] = poisson_log_lpmf(y[i] | log_E[i] + beta_0 + x[i,]*beta);
+}
+
