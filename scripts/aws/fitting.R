@@ -105,3 +105,5 @@ bym_dat <- list(y = y2, E = E2, x = x2, K = K2,
 bym_fit <- stan(bym2, data = bym_dat, iter = 10000, verbose = T, seed = 1997, 
                 control = list(max_treedepth = 12))
 saveRDS(bym_fit, "~/Documents/honors/honors-project/final-fits/bym.RDS")
+
+## bym with horseshoe?? -------------------------
