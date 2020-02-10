@@ -5,7 +5,7 @@ library(data.table)
 library(ggplot2)
 
  
-post <- poisson_fit
+post <- bym
 n_obs = 1495
 n_iter = 20000
 y <- na.omit(p_dat_scaled)$daily_boards
@@ -28,10 +28,11 @@ y <- na.omit(p_dat_scaled)$daily_boards
   ppoverlay <- pp_check(y, yrep[sample(100), ], ppc_dens_overlay) + 
     theme_minimal() 
   
-  ppoverlay + xlim(0, 200) + ylim(0, 0.025) + 
-    labs(title = "Observed versus simulated ridership for Model 1")
+  ppoverlay + xlim(0, 200) + ylim(0, 0.026) + 
+    labs(title = "Observed versus simulated ridership for Model 4")
+  ggsave("~/Documents/honors/honors-projects/chapters/ppcheckmod4.png", width = 6, units = "in")
   
-  ## get traceplot
+   ## get traceplot
   
   trace <- mcmc_trace(samp2, pars = c("beta_0"))
   

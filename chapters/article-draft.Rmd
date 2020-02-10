@@ -17,7 +17,7 @@ abstract: "abstract"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # Introduction 
@@ -143,6 +143,16 @@ All covariates in the table above are standardized to have mean 0 and standard d
 
 # Models
 
+## Stan
+
+All of the models discussed above can be fit using the programming language Stan. Stan is a probabilistic language which uses Hamiltonian Monte Carlo (HMC) and a specialized No U-Turn Sampler (NUTS) to compute joint log probability densities. The specifics of Stan are beyond the scope of this paper. However, a few of its particular diagnostics are helpful in understanding the differences between the model fits below. 
+
+* $\hat{R}$ or `Rhat` indicates how well the Markov chains have mixed by comparing between- and within-chain estimates. At convergence, $\hat{R} = 1$. When $\hat{R} > 1$, the Markov chains have not mixed well and the model likely needs to be run for more iterations.  
+* `n_eff` is the estimated Effective Sample Size (ESS). ESS is the number of independent samples our sample is equivalent to. In other words, if `n_eff` = 1,000, we expect to gain the same amount of information from our sample as we would from 1,000 independent samples. In a "perfect" scenario, `n_eff` should equal the actual number of samples. When `n_eff` is significantly below the actual number of samples, there may be a problem with the model and posterior estimates may be biased. 
+* **Divergent transitions** occur when the simulated Hamiltonian departs from the actual Hamiltonian trajectory. In general, if stan gives any divergent transition warnings, we should consider the posterior estimates unreliable.  
+* `max_treedepth` is a parameter we set when fitting a model in Stan. Treedepth refers to the number of steps the sampler has to take at each iteration. The default is 10. For extremely "curved" or complex posteriors, the treedepth may be much higher. When `max_treedepth` is exceeded, the sampler quits prematurely. Therefore, if we have *many* iterations exceeding `max_treedepth`, posterior estimates may be unreliable. Additionally, setting high treedepth causes the sampler to perform much more slowly. 
+* `adapt_delta` is also a sampling parameter; it corresponds to the Mean Metropolis Acceptance Rate (see ____). The default is 0.8. Setting a higher `adapt_delta` slows computation time but *can* eliminate "false alarm" divergent transitions. 
+
 ## Poisson Regression
 
 For each block group $i = 1, 2, 3, ..., 1495$ with any ridership, the "baseline" model is a simple Poisson regression. Poisson regressions are a type of generalized linear model with the natural log as its link function. For ridership $Y_i$ and covariates $x_1, ..., x_k$ discussed above, the Poisson regression is written
@@ -176,6 +186,53 @@ In this study, we define $E_i$ to equal the number of times a bus stops in block
 
 In the basic Poisson regression, we often give $\beta_0$ and $\beta$ vague priors such as Normal($0, 1$). The exposure term $E_i$ comes from the data and does not recieve a prior. 
 
+### Model 1
+
+We will call this baseline Poisson regression Model 1. Model 1 uses all 18 covariates with simple Normal(0, 1) priors and no overdispersion parameters. The Stan program used to fit Model 1, as well as the other four models, can be found in the appendix. Model 1 fits quickly and efficiently. The Stan output for $\beta_0$ and $\beta$ is below. 
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lrrrrrr}
+  \toprule
+Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
+  \midrule
+beta\_0 & 1.000 & 19365 & -1.376 & 0.005 & -1.385 & -1.366 \\ 
+  beta[1] & 1.000 & 18085 & 0.006 & 0.007 & -0.007 & 0.019 \\ 
+  beta[2] & 1.000 & 19330 & 0.063 & 0.005 & 0.054 & 0.072 \\ 
+  beta[3] & 1.000 & 18752 & -0.027 & 0.004 & -0.035 & -0.019 \\ 
+  beta[4] & 1.000 & 18026 & -0.029 & 0.004 & -0.038 & -0.021 \\ 
+  beta[5] & 1.000 & 18380 & -0.013 & 0.005 & -0.022 & -0.004 \\ 
+  beta[6] & 1.000 & 15809 & 0.241 & 0.005 & 0.231 & 0.251 \\ 
+  beta[7] & 1.000 & 18930 & 0.014 & 0.003 & 0.007 & 0.020 \\ 
+  beta[8] & 1.000 & 17331 & -0.003 & 0.005 & -0.012 & 0.006 \\ 
+  beta[9] & 1.000 & 19360 & 0.074 & 0.004 & 0.067 & 0.082 \\ 
+  beta[10] & 1.000 & 21329 & 0.066 & 0.001 & 0.065 & 0.068 \\ 
+  beta[11] & 1.000 & 20224 & -0.121 & 0.004 & -0.128 & -0.114 \\ 
+  beta[12] & 1.000 & 22539 & -0.069 & 0.004 & -0.076 & -0.061 \\ 
+  beta[13] & 1.000 & 18372 & -0.011 & 0.005 & -0.021 & -0.001 \\ 
+  beta[14] & 1.000 & 15602 & -0.026 & 0.005 & -0.035 & -0.017 \\ 
+  beta[15] & 1.000 & 15480 & 0.113 & 0.005 & 0.104 & 0.122 \\ 
+  beta[16] & 1.000 & 19904 & -0.085 & 0.004 & -0.093 & -0.078 \\ 
+  beta[17] & 1.000 & 21169 & 0.047 & 0.003 & 0.042 & 0.053 \\ 
+  beta[18] & 1.000 & 22032 & -0.025 & 0.003 & -0.031 & -0.020 \\ 
+   \bottomrule
+\end{tabular}
+\caption{Stan output for Model 1} 
+\end{table}
+
+Model 1 produces coefficient estimates with tight confidence intervals; few of the $\beta_k$ 95% intervals cross zero. Based on initial diagnostics and precise parameter estimates, Model 1 appears to be a "good" fit. In this way, Model 1 illustrates the importance of diagnostics beyond the default Stan output. 
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width = 6in]{ppcheck_mod1.png}
+  \caption{Posterior predictive check for Model 1.}
+\end{figure}
+
+Model 1 clearly underestimates the number of block groups with low ridership. This is due in large part to extra-Poisson variance present in Metro Transit's ridership data. 
+
+
+
+
 ## Overdispersed Poisson Regression
 
 The most obvious assumption made in a Poisson regression is that response variable $Y$ follows a Poisson distribution. In addition to requiring integer counts, this assumption requires that $\text{Var}(Y) = \text{E}(Y)$. This is often not true in practice. In the case of the Metro Transit ridership data, $\text{Var}(Y) >>\text{E}(Y)$. In this case, we call the unexpectedly large variance "overdispersion" or "extra-Poisson variance." 
@@ -191,6 +248,17 @@ $$
 $$
 
 where $\theta$ is a set of heterogenous random effects. In practice, $\theta$ is scaled by its variance parameter $\sigma$ to allow eassier fitting in Stan. The addition of this set of random effects improves fits on data with overdispersion. With sufficiently vague priors, $\theta$ and $\sigma$ can account for most or all of the overdispersion not accounted for by $\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k$. 
+
+### Model 2
+
+Model 2 builds upon Model 1 by incorporating the set of random effects described above. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the traceplots below (Figure ___). This autocorrelation made it necessary to run Model 2 on four chains for 20,000 iterations each. Despite this, `n_eff` is significantly lower for Model 2 than Model 1. Reparameterization could likely reduce autocorrelation between iterations. 
+
+The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. 
+
+
+
+Because we gave $\theta$ and $\sigma$ vague priors, we can see a *much* better fit in the posterior predictive checks for Model 2. One *could* stop analysis here. However, the addition of $\theta \sigma$ only improves the *fit* of the model, not our understanding of the data. Therefore, for this study, we will decompose $\theta \sigma$ into spatial and non-spatial random effects. First, however, we will implement a Bayesian variable selection process to determine which, if any, of our covariates $x_k$ should be removed from the analysis. 
+
 
 ## Horseshoe Priors and Variable Selection
 
@@ -247,6 +315,13 @@ where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches i
 
 As with the spike-and-slab, the selection of priors is a challenge with the regularized horseshoe. Piironen and Vehtari (2017) provide a set of recommendations for setting priors which we follow in this study. In practice, we tune the priors for $\lambda_k$, $c$, and $\tau$ using simulated data with features similar to our observed data (ie, parameters with coefficients of similar magnitude). 
 
+### Model 3
+
+For this study, we implement the regularize horseshoe using code modified from Piironen & Vehtari. 
+
+
+
+Notably, Model 3 experienced one divergent transition after warmup. However, the model was fitted several times with no divergent transitions. A "false alarm" divergent transition can occur when the cutoff for determining a divergent transition is too low; this can be true in the case of particularly complex posteriors. Because only 1 out of 20,000 iterations produced a divergent transition, we can proceed with caution using Model 3.
 
 
 ## Adding Spatial Structure
@@ -363,23 +438,11 @@ Setting priors is somewhat more straightforward for the BYM2. The ICAR component
 A relatively vague Normal(0, 1) prior is appropriate for $\sigma$. Riebler et al (2016) also propose either a Beta(1/2, 1/2) or more specialized, complex prior for mixing parameter $\rho$. For this study, we use the simpler Beta(1/2, 1/2) prior. 
 
 
-## Stan
+### Model 4
 
-All of the models discussed above can be fit using the programming language Stan. Stan is a probabilistic language which uses Hamiltonian Monte Carlo (HMC) and a specialized No U-Turn Sampler (NUTS) to compute joint log probability densities. The specifics of Stan are beyond the scope of this paper. However, a few of its particular diagnostics are helpful in understanding the differences between the model fits below. 
+Model 4 uses all 18 covariates of interest, no horseshoe priors, and decomposes $\theta\sigma$ into a set of random effects plus a spatial ICAR component. This model converges much more efficiently than Model 2 or Model 3 due to careful reparameterization of the BYM by Riebler et al (2016). Future would could potentially improve the speed of fitting Models 2 and 3. 
 
-* $\hat{R}$ or `Rhat` indicates how well the Markov chains have mixed by comparing between- and within-chain estimates. At convergence, $\hat{R} = 1$. When $\hat{R} > 1$, the Markov chains have not mixed well and the model likely needs to be run for more iterations.  
-* `n_eff` is the estimated Effective Sample Size (ESS). ESS is the number of independent samples our sample is equivalent to. In other words, if `n_eff` = 1,000, we expect to gain the same amount of information from our sample as we would from 1,000 independent samples. In a "perfect" scenario, `n_eff` should equal the actual number of samples. When `n_eff` is significantly below the actual number of samples, there may be a problem with the model and posterior estimates may be biased. 
-* **Divergent transitions** occur when the simulated Hamiltonian departs from the actual Hamiltonian trajectory. In general, if stan gives any divergent transition warnings, we should consider the posterior estimates unreliable.  
-* `max_treedepth` is a parameter we set when fitting a model in Stan. Treedepth refers to the number of steps the sampler has to take at each iteration. The default is 10. For extremely "curved" or complex posteriors, the treedepth may be much higher. When `max_treedepth` is exceeded, the sampler quits prematurely. Therefore, if we have *many* iterations exceeding `max_treedepth`, posterior estimates may be unreliable. Additionally, setting high treedepth causes the sampler to perform much more slowly. 
-* `adapt_delta` is also a sampling parameter; it corresponds to the Mean Metropolis Acceptance Rate (see ____). The default is 0.8. Setting a higher `adapt_delta` slows computation time but *can* eliminate "false alarm" divergent transitions. 
-
-# Results
-
-In this study, we fit several increasingly complex models building upon the baseline Poisson regression, Model 1. Model 2 incorporates a simple set of random effects to account for overdispersion. Model 3 incorporates regularized horseshoe priors for variable selection. Model 4 includes the spatial ICAR priors but no horseshoe priors, and Model 5 includes both regularized horseshoe priors and ICAR priors. 
-
-All five models were run for at least 10,000 iterations and "pass" the basic diagnostic checks: $\hat{R} = 1$, sufficiently high `n_eff`, and no concerning `max_treedepth` or divergence warnings. 
-
-Model 1 uses all 18 covariates with simple Normal(0, 1) priors and no overdispersion parameters. The Stan program used to fit Model 1, as well as the other four models, can be found in the appendix. Model 1 fits quickly and efficiently. The Stan output for $\beta_0$ and $\beta$ is below. 
+Model 4 was run on four chains for 10,000 iterations each. The parameter estimates for Model 4 are below. Note that `n_eff` is lower than for Model 1 but significantly higher than Model 2 or 3. 
 
 \begin{table}[ht]
 \centering
@@ -387,62 +450,98 @@ Model 1 uses all 18 covariates with simple Normal(0, 1) priors and no overdisper
   \toprule
 Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
   \midrule
-beta\_0 & 1.000 & 19365 & -1.376 & 0.005 & -1.385 & -1.366 \\ 
-  beta[1] & 1.000 & 18085 & 0.006 & 0.007 & -0.007 & 0.019 \\ 
-  beta[2] & 1.000 & 19330 & 0.063 & 0.005 & 0.054 & 0.072 \\ 
-  beta[3] & 1.000 & 18752 & -0.027 & 0.004 & -0.035 & -0.019 \\ 
-  beta[4] & 1.000 & 18026 & -0.029 & 0.004 & -0.038 & -0.021 \\ 
-  beta[5] & 1.000 & 18380 & -0.013 & 0.005 & -0.022 & -0.004 \\ 
-  beta[6] & 1.000 & 15809 & 0.241 & 0.005 & 0.231 & 0.251 \\ 
-  beta[7] & 1.000 & 18930 & 0.014 & 0.003 & 0.007 & 0.020 \\ 
-  beta[8] & 1.000 & 17331 & -0.003 & 0.005 & -0.012 & 0.006 \\ 
-  beta[9] & 1.000 & 19360 & 0.074 & 0.004 & 0.067 & 0.082 \\ 
-  beta[10] & 1.000 & 21329 & 0.066 & 0.001 & 0.065 & 0.068 \\ 
-  beta[11] & 1.000 & 20224 & -0.121 & 0.004 & -0.128 & -0.114 \\ 
-  beta[12] & 1.000 & 22539 & -0.069 & 0.004 & -0.076 & -0.061 \\ 
-  beta[13] & 1.000 & 18372 & -0.011 & 0.005 & -0.021 & -0.001 \\ 
-  beta[14] & 1.000 & 15602 & -0.026 & 0.005 & -0.035 & -0.017 \\ 
-  beta[15] & 1.000 & 15480 & 0.113 & 0.005 & 0.104 & 0.122 \\ 
-  beta[16] & 1.000 & 19904 & -0.085 & 0.004 & -0.093 & -0.078 \\ 
-  beta[17] & 1.000 & 21169 & 0.047 & 0.003 & 0.042 & 0.053 \\ 
-  beta[18] & 1.000 & 22032 & -0.025 & 0.003 & -0.031 & -0.020 \\ 
+beta0 & 1.001 & 4770 & -1.880 & 0.028 & -1.937 & -1.825 \\ 
+  sigma & 1.003 &  520 & 2.698 & 0.372 & 1.993 & 3.451 \\ 
+  rho & 1.002 &  514 & 0.888 & 0.038 & 0.793 & 0.941 \\ 
+  theta[5] & 1.000 & 17797 & -0.179 & 0.777 & -1.688 & 1.336 \\ 
+  beta[1] & 1.000 & 4322 & 0.034 & 0.047 & -0.056 & 0.127 \\ 
+  beta[2] & 1.001 & 3801 & 0.061 & 0.035 & -0.009 & 0.131 \\ 
+  beta[3] & 1.000 & 4203 & -0.003 & 0.039 & -0.080 & 0.073 \\ 
+  beta[4] & 1.001 & 4330 & -0.049 & 0.044 & -0.134 & 0.037 \\ 
+  beta[5] & 1.000 & 4706 & 0.209 & 0.042 & 0.127 & 0.292 \\ 
+  beta[6] & 1.000 & 4919 & 0.065 & 0.038 & -0.009 & 0.138 \\ 
+  beta[7] & 1.002 & 3929 & 0.029 & 0.038 & -0.046 & 0.104 \\ 
+  beta[8] & 1.000 & 6278 & 0.145 & 0.032 & 0.083 & 0.207 \\ 
+  beta[9] & 1.000 & 4607 & -0.088 & 0.031 & -0.150 & -0.026 \\ 
+  beta[10] & 1.000 & 6145 & 0.014 & 0.029 & -0.043 & 0.070 \\ 
+  beta[11] & 1.000 & 6978 & -0.022 & 0.031 & -0.083 & 0.040 \\ 
+  beta[12] & 1.000 & 6125 & -0.068 & 0.034 & -0.136 & -0.002 \\ 
+  beta[13] & 1.000 & 5875 & 0.094 & 0.033 & 0.029 & 0.158 \\ 
+  beta[14] & 1.000 & 4743 & -0.089 & 0.035 & -0.157 & -0.019 \\ 
+  beta[15] & 1.001 & 2720 & 0.076 & 0.039 & 0.001 & 0.151 \\ 
+  beta[16] & 1.000 & 6053 & -0.029 & 0.031 & -0.091 & 0.031 \\ 
    \bottomrule
 \end{tabular}
-\caption{Stan output for Model 1} 
+\caption{Stan output for Model 4} 
 \end{table}
 
-Model 1 produces coefficient estimates with tight confidence intervals; few of the $\beta_k$ 95% intervals cross zero. Based on initial diagnostics and precise parameter estimates, Model 1 appears to be a "good" fit. In this way, Model 1 illustrates the importance of diagnostics beyond the default Stan output. 
+Like Models 2 and 3, the BYM2 model performs well in the posterior predictive check (Figure __). 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width = 5in]{ppcheck_mod1.png}
+  \includegraphics[width = 6in]{ppcheckmod4.png}
   \caption{Posterior predictive check for Model 1.}
 \end{figure}
 
-Model 1 clearly underestimates the number of block groups with low ridership. This is due in large part to the extra-Poisson variance in Metro Transit's ridership data. 
+### Model 5
 
-Model 2 builds upon Model 1 by incorporating and overdispersion parameter. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the traceplots below (Figure ___) as well as in the significantly lower `n_eff` for Model 2. The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. 
+Model 5 builds upon Model 4 by incorporating regularized horsehoe priors in addition to spatial ICAR priors. This model has high autocorrelation between iterations and took *significantly* longer than any of the other models to fit in Stan (upwards of 12 hours). That said, the `n_eff` and $\hat{R}$ diagnostics indicate convergence and the parameter estimates (Table __) match our expectations in terms of sign and magnitude based on the previous 4 models. 
 
-
-
-Because we gave $\theta$ and $\sigma$ vague priors, we can see a *much* better fit in the posterior predictive checks for Model 2. One *could* stop analysis here. However, the addition of $\theta \sigma$ only improves the *fit* of the model, not our understanding of the data. Therefore, for this study, we will decompose $\theta \sigma$ into spatial and non-spatial random effects. 
-
-First, however, we implement the horseshoe priors to determine if any of our 18 covariates $x_k$ should be removed from the model. 
-
-
-<!-- Notably, Model 3 experienced one divergent transition after warmup. However, the model was fitted several times with no divergent transitions. A "false alarm" divergent transition can occur when the cutoff for determining a divergent transition is too low; this can be true in the case of particularly complex posteriors. Because only 1 out of 20,000 iterations produced a divergent transition, we can proceed with caution using Model 3.  -->
-
-
+\begin{table}[ht]
+\centering
+\begin{tabular}{lrrrrrr}
+  \toprule
+Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
+  \midrule
+beta0 & 1.0 & 5837 & -1.9 & 0.0 & -1.9 & -1.8 \\ 
+  sigma & 1.0 & 721 & 2.8 & 0.4 & 2.1 & 3.6 \\ 
+  rho & 1.0 & 713 & 0.9 & 0.0 & 0.8 & 0.9 \\ 
+  beta[1] & 1.0 & 3637 & -0.1 & 0.1 & -0.2 & -0.0 \\ 
+  beta[2] & 1.0 & 8170 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[3] & 1.0 & 3987 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[4] & 1.0 & 8531 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[5] & 1.0 & 7619 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[6] & 1.0 & 2999 & 0.2 & 0.1 & 0.1 & 0.3 \\ 
+  beta[7] & 1.0 & 3726 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[8] & 1.0 & 7956 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[9] & 1.0 & 5622 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[10] & 1.0 & 7530 & 0.1 & 0.0 & 0.1 & 0.2 \\ 
+  beta[11] & 1.0 & 4558 & -0.1 & 0.0 & -0.1 & 0.0 \\ 
+  beta[12] & 1.0 & 11150 & 0.0 & 0.0 & -0.0 & 0.0 \\ 
+  beta[13] & 1.0 & 8289 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[14] & 1.0 & 5469 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[15] & 1.0 & 4822 & 0.1 & 0.0 & -0.0 & 0.1 \\ 
+  beta[16] & 1.0 & 3863 & -0.1 & 0.0 & -0.1 & 0.0 \\ 
+  beta[17] & 1.0 & 2094 & 0.1 & 0.0 & -0.0 & 0.1 \\ 
+  beta[18] & 1.0 & 6949 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+   \bottomrule
+\end{tabular}
+\caption{Stan output for Model 5} 
+\end{table}
 
 # Discussion
+
+In this study, we fit several increasingly complex models building upon the baseline Poisson regression, Model 1. Model 2 incorporates a simple set of random effects to account for overdispersion. Model 3 incorporates regularized horseshoe priors for variable selection. Model 4 includes the spatial ICAR priors but no horseshoe priors, and Model 5 includes both regularized horseshoe priors and ICAR priors. 
+
+All five models were run for at least 10,000 iterations and "pass" the basic diagnostic checks: $\hat{R} = 1$, sufficiently high `n_eff`, and no concerning `max_treedepth` or divergence warnings. 
+
+Naturally, the baseline Model 1 converges most quickly and has the highest `n_eff` diagnostics. The simplicity of the Model, however, yields a poor model fit. Perhaps unexpectedly, Model 4, the BYM2, is the second-most efficient in terms of convergence and Effective Sample Size. 
+
+
+
+
+
+
 
 - bymhrs is probably not "worth it", needs to be reparameterized/coded by someone better than me
 - incorporating overdispersion is the most important improvement in terms of model fit
 
 
-# Appendix
+# Appendix: Stan Code
 
 ## Model 1
+
+The baseline 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/poisson.stan"))
 ```
