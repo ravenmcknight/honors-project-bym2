@@ -101,7 +101,7 @@ As with the spike-and-slab, the selection of priors is a challenge with the regu
 
 # Spatial Structure -- needs many graphics
 
-When modeling data with a spatial component, we generally expect adjacent areas to be more similar than areas which are far apart. While this is a straightforward assumption, it can improve model fits in several ways. First, it can encode prior information about response $Y$ not otherwise represented by covariates $x$ (ie, that nearby observations are more similar than far flung ones). Second, it can provide geographic smoothing when observations are sparse or noisy. This is often the case in small areas or when observing events which can only occur at specific locations, such as air quality measured by sensors. 
+When modeling data with a spatial component, we generally expect adjacent areas to be more similar than areas which are far apart. While this is a straightforward assumption, it can improve model fits in several ways. First, it can encode prior information about response $Y$ not otherwise represented by covariates $x$ (ie, that nearby observations are more similar than far-flung ones). Second, it can provide geographic smoothing when observations are sparse or noisy. This is often the case in small areas or when observing events which can only occur at specific locations, such as air quality measured by sensors. 
 
 ## Spatial Autocorrelation
 

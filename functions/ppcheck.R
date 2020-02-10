@@ -4,15 +4,12 @@ library(loo)
 library(data.table)
 library(ggplot2)
 
-## for testing
-
-post <- readRDS("~/Documents/honors/honors-project/test_post.RDS")
+ 
+post <- poisson_fit
 n_obs = 1495
-n_iter = 2000
+n_iter = 20000
+y <- na.omit(p_dat_scaled)$daily_boards
 
-# function will take stanfit, observed y, number observations, number iterations, pars for trace, 
-
-ppcheck <- function(post, y, n_obs, n_iter){
 
 ## get posterior draws
 
@@ -29,8 +26,10 @@ ppcheck <- function(post, y, n_obs, n_iter){
   setDT(as.data.frame(yrep))
   
   ppoverlay <- pp_check(y, yrep[sample(100), ], ppc_dens_overlay) + 
-    theme_minimal() +
-    labs(title = "Poisson Actual versus fitted") 
+    theme_minimal() 
+  
+  ppoverlay + xlim(0, 200) + ylim(0, 0.025) + 
+    labs(title = "Observed versus simulated ridership for Model 1")
   
   ## get traceplot
   
@@ -67,5 +66,5 @@ ppcheck <- function(post, y, n_obs, n_iter){
   ## map
   
   
-}
+
 

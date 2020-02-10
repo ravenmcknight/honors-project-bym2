@@ -49,7 +49,7 @@ poisson <- "~/Documents/honors/honors-project/stan/final-stan/poisson.stan"
 ## add horseshoe priors -------------------------
 
 poisson_hrs <- "~/Documents/honors/honors-project/stan/final-stan/poisson_horseshoe.stan"
-#poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 10000, verbose = T,
+poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 10000, verbose = T,
                         control = list(adapt_delta = 0.99, max_treedepth = 15), seed = 1997)
 #saveRDS(poisson_hrs_fit, '~/Documents/honors/honors-project/final-fits/poisson_hrs_fit.RDS')
 
@@ -70,7 +70,7 @@ standat2 <- list(y = y, E = E, x = x2, K = K2, N = N)
 poisson_theta <- "~/Documents/honors/honors-project/stan/final-stan/poisson_theta.stan"
 
 
-#poisson_theta_fit <- stan(poisson_theta, data = standat2, iter = 20000, verbose = T, seed = 1997)
+poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 20000, verbose = T, seed = 1997)
 #saveRDS(poisson_theta_fit, "~/Documents/honors/honors-project/final-fits/poisson_theta.RDS")
 
 ## and the bym ! --------------------------------
@@ -113,5 +113,7 @@ bymhrs_dat <- list(y = y, E = E, x = x, K = K,
                    N = N2, node1 = node1, node2 = node2, N_edges = N_edges, scaling_factor = scaling_factor, 
                    scale_icept = 2, scale_global = .002, nu_global = 1, nu_local = 1, slab_scale = 1, slab_df = 24)
 
-bymhrs <- stan(bymhrs, data = bymhrs_dat, iter = 10000, verbose = T, seed = 1997, 
+bymrs <- stan(bymhrs, data = bymhrs_dat, iter = 50, verbose = T, seed = 1997, 
                control = list(max_treedepth = 15, adapt_delta = 0.99))
+
+launch_shinystan(bymrs)

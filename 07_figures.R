@@ -16,5 +16,5 @@ sfdat <- left_join(bgs, mod_dat, on = 'GEOID')
 ggplot(sfdat) + 
   geom_sf(aes(fill = log(daily_boards)), color = "grey", lwd = .1) +
   theme_minimal() +
-  scale_fill_viridis(na.value = "transparent", option = "plasma") +
-  labs(fill = "Daily Boardings")
+  scale_fill_viridis(na.value = "transparent") +
+  labs(fill = "Boardings", title = "Average Weekday Boardings, 2017", subtitle = "Log scale, enumerated by block group")
