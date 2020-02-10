@@ -5,9 +5,9 @@ library(data.table)
 library(ggplot2)
 
  
-post <- bym
+post <- poisson_theta_all
 n_obs = 1495
-n_iter = 20000
+n_iter = 40000
 y <- na.omit(p_dat_scaled)$daily_boards
 
 
@@ -29,8 +29,8 @@ y <- na.omit(p_dat_scaled)$daily_boards
     theme_minimal() 
   
   ppoverlay + xlim(0, 200) + ylim(0, 0.026) + 
-    labs(title = "Observed versus simulated ridership for Model 4")
-  ggsave("~/Documents/honors/honors-projects/chapters/ppcheckmod4.png", width = 6, units = "in")
+    labs(title = "Observed versus simulated ridership for Model 2")
+  ggsave("~/Documents/honors/honors-projects/chapters/ppcheckmod2.png", width = 6, units = "in")
   
    ## get traceplot
   

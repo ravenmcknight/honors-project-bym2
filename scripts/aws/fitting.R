@@ -71,7 +71,7 @@ poisson_theta <- "~/Documents/honors/honors-project/stan/final-stan/poisson_thet
 
 
 poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 20000, verbose = T, seed = 1997)
-#saveRDS(poisson_theta_fit, "~/Documents/honors/honors-project/final-fits/poisson_theta.RDS")
+saveRDS(poisson_theta_fit, "~/Documents/honors/honors-project/final-fits/poisson_theta_all.RDS")
 
 ## and the bym ! --------------------------------
 

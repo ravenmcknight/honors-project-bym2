@@ -51,11 +51,14 @@ transformed parameters {
   // latent function variables
   vector[N] f;
   
+  vector[N] re;
+  
   lambda = aux1_local .* sqrt(aux2_local);
   tau = aux1_global * sqrt(aux2_global) * scale_global;
   c = slab_scale * sqrt(caux); 
   lambda_tilde = sqrt(c^2 * square(lambda) ./ (c^2 + tau^2 * square(lambda)));
   beta = z .* lambda_tilde*tau;
+  re = theta*sigma; 
   f = log_E + beta_0 + x*beta + theta*sigma;
 }
 model {
@@ -72,6 +75,6 @@ model {
 }
 generated quantities {
   vector[N] log_lik; 
-    for(i in 1:N) log_lik[i] = poisson_log_lpmf(y[i] | log_E[i] + beta_0 + x[i,]*beta + theta[i, ]*sigma);
+    for(i in 1:N) log_lik[i] = poisson_log_lpmf(y[i] | log_E[i] + beta_0 + x[i,]*beta + re[i]);
 }
 

@@ -1,10 +1,6 @@
 ---
 title: "Honors Draft"
 author: "Raven McKnight"
-header-includes:
-- \usepackage{booktabs}
-- \usepackage{makecell}
-- \usepackage{float}
 date: "2/9/2020"
 output:
   pdf_document:
@@ -252,11 +248,46 @@ where $\theta$ is a set of heterogenous random effects. In practice, $\theta$ is
 
 ### Model 2
 
-Model 2 builds upon Model 1 by incorporating the set of random effects described above. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the traceplots below (Figure ___). This autocorrelation made it necessary to run Model 2 on four chains for 20,000 iterations each. Despite this, `n_eff` is significantly lower for Model 2 than Model 1. Reparameterization could likely reduce autocorrelation between iterations. 
+Model 2 builds upon Model 1 by incorporating the set of random effects described above. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the traceplots below (Figure ___). This autocorrelation made it necessary to run Model 2 on four chains for 20,000 iterations each. Despite this, `n_eff` is significantly lower for Model 2 than Model 1. Model 2 also experienced 2 transitions exceeding maixmum treedepth: not a problem in terms of model fit, but a signal that the posterior is more challenging to fit. Reparameterization could likely reduce autocorrelation between iterations. 
 
-The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. 
+The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. Notably, the direction and magnitude of the coefficient estimates are similar to those produced by Model 1. However, the coverage intervals are much wider. Based on "test runs" of Model 2, we expect increasing the number of iterations to decrease the width of these coverage intervals (we observe that the converage interval is proportional to the number of iterations in this setting). 
 
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrrrr}
+  \toprule
+Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
+  \midrule
+beta\_0 & 1.0 & 1354 & -1.9 & 0.0 & -2.0 & -1.8 \\ 
+  sigma & 1.0 & 1800 & 1.0 & 0.0 & 0.9 & 1.0 \\ 
+  beta[1] & 1.0 & 1546 & -0.1 & 0.0 & -0.2 & -0.0 \\ 
+  beta[2] & 1.0 & 1095 & 0.0 & 0.1 & -0.1 & 0.1 \\ 
+  beta[3] & 1.0 & 1322 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[4] & 1.0 & 1208 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[5] & 1.0 & 1282 & -0.0 & 0.0 & -0.1 & 0.1 \\ 
+  beta[6] & 1.0 & 988 & 0.1 & 0.0 & 0.1 & 0.2 \\ 
+  beta[7] & 1.0 & 1019 & 0.1 & 0.0 & -0.0 & 0.1 \\ 
+  beta[8] & 1.0 & 1178 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[9] & 1.0 & 1125 & 0.0 & 0.0 & -0.1 & 0.1 \\ 
+  beta[10] & 1.0 & 1796 & 0.1 & 0.0 & 0.1 & 0.2 \\ 
+  beta[11] & 1.0 & 1152 & -0.1 & 0.0 & -0.1 & -0.0 \\ 
+  beta[12] & 1.0 & 1629 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
+  beta[13] & 1.0 & 2101 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+  beta[14] & 1.0 & 1415 & -0.1 & 0.0 & -0.1 & -0.0 \\ 
+  beta[15] & 1.0 & 1581 & 0.1 & 0.0 & 0.0 & 0.2 \\ 
+  beta[16] & 1.0 & 1160 & -0.1 & 0.0 & -0.2 & -0.0 \\ 
+  beta[17] & 1.0 & 997 & 0.1 & 0.0 & 0.0 & 0.2 \\ 
+  beta[18] & 1.0 & 1589 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+   \bottomrule
+\end{tabular}
+\caption{Stan output for Model 2} 
+\end{table}
 
+<!-- \begin{figure}[H] -->
+<!--   \centering -->
+<!--   \includegraphics[width = 6in]{ppcheckmod2.png} -->
+<!--   \caption{Posterior predictive check for Model 1.} -->
+<!-- \end{figure} -->
 
 Because we gave $\theta$ and $\sigma$ vague priors, we can see a *much* better fit in the posterior predictive checks for Model 2. One *could* stop analysis here. However, the addition of $\theta \sigma$ only improves the *fit* of the model, not our understanding of the data. Therefore, for this study, we will decompose $\theta \sigma$ into spatial and non-spatial random effects. First, however, we will implement a Bayesian variable selection process to determine which, if any, of our covariates $x_k$ should be removed from the analysis. 
 
@@ -542,7 +573,7 @@ Naturally, the baseline Model 1 converges most quickly and has the highest `n_ef
 
 ## Model 1
 
-The baseline 
+The Stan program for the baseline model is below. This model could also have been fit using Stan's more efficient built-in Poisson GLM function. For this study, we write the GLM more "longhand" for ease of comparison between models. 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/poisson.stan"))
 ```
@@ -550,16 +581,21 @@ writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/poisson.
 
 ## Model 2
 
+The Stan program for Model 2 differs from Model 1 only in the latent variable, `f`. 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/poisson_theta.stan"))
 ```
 
 ## Model 3
+
+The regularized horseshoe prior used to fit Model 3 is adopted from Piironen and Vehtari. 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/poisson_horseshoe.stan"))
 ```
 
 ## Model 4
+
+The BYM2 model is fit using code from Morris et al. 
 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/bym2.stan"))
@@ -568,6 +604,8 @@ writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/bym2.sta
 
 
 ## Model 5
+
+Finally, the code to fit Model 5 quite literally combines the programs for Models 3 and 4. 
 ```{r}
 writeLines(readLines("~/Documents/honors/honors-project/stan/final-stan/bym_horseshoe.stan"))
 
