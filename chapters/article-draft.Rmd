@@ -108,34 +108,35 @@ Additionally, we aggregate boardings counts to average weekday boardings. This a
 
 All other data sources used in this study are from outside sources. Census Block Groups are used as the areal unit of analysis. Covariates of interest are primarily from the 2017 American Community Survey (ACS) 5-Year Estimates. Additional variables related to employment are sourced from the Longitudinal Origin-Destination Employment Statistics (LODES) dataset. A full list of covariates used in this study is below. 
 
-<!-- \begin{table}[h] -->
-<!-- \centering -->
-<!-- \begin{tabular}{lr} -->
-<!--   \toprule -->
-<!-- Parameter & meaning \\ -->
-<!--   \midrule -->
-<!-- beta[1] &  median household income \\ -->
-<!--   beta[2] &  percent residents identified as white alone \\ -->
-<!--   beta[3] &  area of 10 minute walk isochrone from population-weighted block group centroid \\ -->
-<!--   beta[4] &  percent residents with a high school diploma \\ -->
-<!--   beta[5] &  percent residents with a bachelor's degree \\ -->
-<!--   beta[6] &  percent of residents who rent their residence \\ -->
-<!--   beta[7] &  percent of residents without a vehicle \\ -->
-<!--   beta[8] &  percent of residents who speak only English \\ -->
-<!--   beta[9] &  percent of residents identified as foreign \\ -->
-<!--   beta[10] & employment density \\ -->
-<!--   beta[11] & percent of jobs in block group for white employees \\ -->
-<!--   beta[12] & percent of jobs in block group for male employees \\ -->
-<!--   beta[13] & percent of jobs in block group for employees with no college degree \\ -->
-<!--   beta[14] &  percent of jobs in block group for employees who make less than $40,000 \\ -->
-<!--   beta[15] &  percent of jobs in block group for employees under age 30 \\ -->
-<!--   beta[16] &  median age \\ -->
-<!--   beta[17] &  percent residents who use transit to commute to work \\ -->
-<!--   beta[18] &  population density \\ -->
-<!--    \bottomrule -->
-<!-- \end{tabular} -->
-<!-- \caption{List of covariates} -->
-<!-- \end{table} -->
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll} \toprule
+    Parameter & Meaning \\ \midrule
+    beta[1] & median household income \\ 
+    beta[2] & percent residents identified as white alone \\ 
+    beta[3] &  area of 10 minute walk isochrone from population-weighted block group centroid \\
+    beta[4] &  percent residents with a high school diploma \\
+    beta[5] &  percent residents with a bachelor's degree \\
+    beta[6] &  percent of residents who rent their residence \\
+    beta[7] &  percent of residents without a vehicle \\
+    beta[8] &  percent of residents who speak only English \\
+    beta[9] &  percent of residents identified as foreign \\
+    beta[10] & employment density \\
+    beta[11] & percent of jobs in block group for white employees \\
+    beta[12] & percent of jobs in block group for male employees \\
+    beta[13] & percent of jobs in block group for employees with no college degree \\
+    beta[14] & percent of jobs in block group for employees who make less than \$40,000 \\
+    beta[15] & percent of jobs in block group for employees under age 30 \\
+    beta[16] & median age \\
+    beta[17] & percent residents who use transit to commute to work \\
+    beta[18] & population density \\
+    \bottomrule
+ \hline
+\end{tabular}
+\caption{List of covariates}
+\end{table}
+
 
 Note that `beta[3]` is a measure of walkability. A 10-minute walk isochrone, generated using OpenTripPlanner, shows the area a person on foot can cover in 10 minutes on the existing street network. In theory, we expect more walkable areas, such as the downtown Saint Paul and Minneapolis, to have larger walk-isochrones. Unfortunately, the metric can be fooled by rural areas where you can walk uninterruped down a single roadway, for example. An improved "walkability" metric could improve models of transit ridership. 
 
