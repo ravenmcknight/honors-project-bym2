@@ -13,8 +13,16 @@ bgs <- block_groups("MN", counties, 2017)
 
 sfdat <- left_join(bgs, mod_dat, on = 'GEOID')
 
-ggplot(sfdat) + 
+post <- readRDS("~/Documents/honors/honors-project/final-fits/poisson_fit.RDS")
+post <- rstan::extract(post)
+f <- post$f   
+
+
+
+t <- ggplot(sfdat) + 
   geom_sf(aes(fill = log(daily_boards)), color = "grey", lwd = .1) +
   theme_minimal() +
   scale_fill_viridis(na.value = "transparent") +
   labs(fill = "Boardings", title = "Average Weekday Boardings, 2017", subtitle = "Log scale, enumerated by block group")
+
+ggsave(plot = t, "~/Documents/honors/honors-project/chapters/big_map.png", scale = 5)

@@ -1,34 +1,46 @@
-\documentclass[]{article}
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
-\usepackage{fixltx2e} % provides \textsubscript
 \ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
-\else % if luatex or xelatex
-  \ifxetex
-    \usepackage{mathspec}
-  \else
-    \usepackage{fontspec}
-  \fi
-  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
 \fi
-% use upquote if available, for straight quotes in verbatim environments
+% Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
-% use microtype if available
-\IfFileExists{microtype.sty}{%
-\usepackage[]{microtype}
-\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
-\PassOptionsToPackage{hyphens}{url} % url is loaded by hyperref
-\usepackage[unicode=true]{hyperref}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
-            pdftitle={Honors Draft},
-            pdfauthor={Raven McKnight},
-            pdfborder={0 0 0},
-            breaklinks=true}
-\urlstyle{same}  % don't use monospace font for urls
+  pdftitle={Honors Draft},
+  pdfauthor={Raven McKnight},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx,grffile}
 \makeatletter
@@ -39,31 +51,16 @@
 % margins by default, and it is still possible to overwrite the defaults
 % using explicit options in \includegraphics[width, height, ...]{}
 \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
-\IfFileExists{parskip.sty}{%
-\usepackage{parskip}
-}{% else
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{6pt plus 2pt minus 1pt}
-}
-\setlength{\emergencystretch}{3em}  % prevent overfull lines
-\providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-\setcounter{secnumdepth}{5}
-% Redefines (sub)paragraphs to behave more like sections
-\ifx\paragraph\undefined\else
-\let\oldparagraph\paragraph
-\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
-\fi
-\ifx\subparagraph\undefined\else
-\let\oldsubparagraph\subparagraph
-\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
-\fi
-
-% set default figure placement to htbp
+% Set default figure placement to htbp
 \makeatletter
 \def\fps@figure{htbp}
 \makeatother
-
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage{float}
+\usepackage{booktabs}
 
 \title{Honors Draft}
 \author{Raven McKnight}
@@ -75,7 +72,8 @@
 abstract
 \end{abstract}
 
-\section{Introduction}\label{introduction}
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
 
 Public transit ridership has been in decline around the country for
 years, but particularly since the mid 2010s (). Following a spike in
@@ -119,9 +117,11 @@ can use demographic predictors associated with spatial units such as
 census block groups to explore the question of \emph{who} rides -- or,
 at the very least, \emph{where} do they ride.
 
-\section{Background}\label{background}
+\hypertarget{background}{%
+\section{Background}\label{background}}
 
-\subsection{Metro Transit}\label{metro-transit}
+\hypertarget{metro-transit}{%
+\subsection{Metro Transit}\label{metro-transit}}
 
 Metro Transit is the primary transit provider in the Minneapolis-Saint
 Paul metropolitan area. The agency operates one commuter rail line
@@ -143,7 +143,8 @@ of transit ridership via demographic predictors and spatial patterns.
 Future work will incorporate temporal trends to better understand
 declining ridership.
 
-\subsection{Transit Market Areas}\label{transit-market-areas}
+\hypertarget{transit-market-areas}{%
+\subsection{Transit Market Areas}\label{transit-market-areas}}
 
 Metro is interested in predicting transit demand across the region in
 order to guide route planning and service provision. Currently, Metro
@@ -193,9 +194,11 @@ the ``walkability'' of an area. However, the exsiting Transit Market
 Area model may be over-simplifying the complex question of transit
 ridership.
 
-\section{Data}\label{data}
+\hypertarget{data}{%
+\section{Data}\label{data}}
 
-\subsection{Metro Transit Data}\label{metro-transit-data}
+\hypertarget{metro-transit-data}{%
+\subsection{Metro Transit Data}\label{metro-transit-data}}
 
 This analysis relies on several Metro Transit provided data sets. The
 two primary sources are automatically reported by in-service vehicles,
@@ -232,7 +235,8 @@ block group in 2017.
   \caption{Average weekday boardings by census block group, the response variable for this analysis.}
 \end{figure}
 
-\subsubsection{Data Interpolation}\label{data-interpolation}
+\hypertarget{data-interpolation}{%
+\subsubsection{Data Interpolation}\label{data-interpolation}}
 
 In theory, we have APC data for each run bus trip in 2017. However, we
 know that, for a variety of reasons, this is untrue. The automatic data
@@ -261,7 +265,8 @@ The algorithm used to interpolate data works essentially as follows:
   (trips on the same route, day of week, season, location, etc).
 \end{enumerate}
 
-\subsubsection{Data Aggregation}\label{data-aggregation}
+\hypertarget{data-aggregation}{%
+\subsubsection{Data Aggregation}\label{data-aggregation}}
 
 For the models presented in this study, we aggregate boardings at
 individual bus stops to the census block group. This is in large part to
@@ -276,7 +281,8 @@ to build a spatial model without simultaneously incorporating temporal
 trends. The data interpolation described above will be more impactful in
 future studies incorporating temporal trends.
 
-\subsection{Other data sources}\label{other-data-sources}
+\hypertarget{other-data-sources}{%
+\subsection{Other data sources}\label{other-data-sources}}
 
 All other data sources used in this study are from outside sources.
 Census Block Groups are used as the areal unit of analysis. Covariates
@@ -327,9 +333,11 @@ standard deviation 1. Intuitively, we expect many of the covariates to
 be correlated. Therefore, we will utilize variable selection to
 determine which covariates to keep in our analysis.
 
-\section{Models}\label{models}
+\hypertarget{models}{%
+\section{Models}\label{models}}
 
-\subsection{Stan}\label{stan}
+\hypertarget{stan}{%
+\subsection{Stan}\label{stan}}
 
 All of the models discussed above can be fit using the programming
 language Stan. Stan is a probabilistic language which uses Hamiltonian
@@ -377,7 +385,8 @@ helpful in understanding the differences between the model fits below.
   \emph{can} eliminate ``false alarm'' divergent transitions.
 \end{itemize}
 
-\subsection{Poisson Regression}\label{poisson-regression}
+\hypertarget{poisson-regression}{%
+\subsection{Poisson Regression}\label{poisson-regression}}
 
 For each block group \(i = 1, 2, 3, ..., 1495\) with any ridership, the
 ``baseline'' model is a simple Poisson regression. Poisson regressions
@@ -427,7 +436,8 @@ In the basic Poisson regression, we often give \(\beta_0\) and \(\beta\)
 vague priors such as Normal(\(0, 1\)). The exposure term \(E_i\) comes
 from the data and does not recieve a prior.
 
-\subsubsection{Model 1}\label{model-1}
+\hypertarget{model-1}{%
+\subsubsection{Model 1}\label{model-1}}
 
 We will call this baseline Poisson regression Model 1. Model 1 uses all
 18 covariates with simple Normal(0, 1) priors and no overdispersion
@@ -481,8 +491,9 @@ Model 1 clearly underestimates the number of block groups with low
 ridership. This is due in large part to extra-Poisson variance present
 in Metro Transit's ridership data.
 
+\hypertarget{overdispersed-poisson-regression}{%
 \subsection{Overdispersed Poisson
-Regression}\label{overdispersed-poisson-regression}
+Regression}\label{overdispersed-poisson-regression}}
 
 The most obvious assumption made in a Poisson regression is that
 response variable \(Y\) follows a Poisson distribution. In addition to
@@ -516,7 +527,8 @@ priors, \(\theta\) and \(\sigma\) can account for most or all of the
 overdispersion not accounted for by
 \(\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k\).
 
-\subsubsection{Model 2}\label{model-2}
+\hypertarget{model-2}{%
+\subsubsection{Model 2}\label{model-2}}
 
 Model 2 builds upon Model 1 by incorporating the set of random effects
 described above. Model 2 is \emph{significantly} more computationally
@@ -569,6 +581,12 @@ beta\_0 & 1.0 & 1354 & -1.9 & 0.0 & -2.0 & -1.8 \\
 \caption{Stan output for Model 2} 
 \end{table}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width = 6in]{ppcheckmod2.png}
+  \caption{Posterior predictive check for Model 1.}
+\end{figure}
+
 Because we gave \(\theta\) and \(\sigma\) vague priors, we can see a
 \emph{much} better fit in the posterior predictive checks for Model 2.
 One \emph{could} stop analysis here. However, the addition of
@@ -579,8 +597,9 @@ however, we will implement a Bayesian variable selection process to
 determine which, if any, of our covariates \(x_k\) should be removed
 from the analysis.
 
+\hypertarget{horseshoe-priors-and-variable-selection}{%
 \subsection{Horseshoe Priors and Variable
-Selection}\label{horseshoe-priors-and-variable-selection}
+Selection}\label{horseshoe-priors-and-variable-selection}}
 
 In the baseline model, we give coefficients \(\beta_1, ..., \beta_k\)
 simple normal priors. With a large set of possible covariates, however,
@@ -592,8 +611,9 @@ Operator) to identify relevant variables. There are several Bayesian
 alternatives for variable selection with generally consist of applying
 particular priors to \(\beta\).
 
+\hypertarget{spike-and-slab---needs-graphics}{%
 \subsubsection{Spike and Slab - needs
-graphics}\label{spike-and-slab---needs-graphics}
+graphics}\label{spike-and-slab---needs-graphics}}
 
 In the Bayesian setting, there are two primary methods for variable
 selection. The first is called the ``spike-and-slab'' prior (Mitchell
@@ -627,8 +647,9 @@ number of predictors we expect to be distinguishable from zero. This can
 make the implementation of sparse regression more challenging than, say,
 the frequentist LASSO.
 
+\hypertarget{horseshoe---needs-graphics}{%
 \subsubsection{Horseshoe - needs
-graphics}\label{horseshoe---needs-graphics}
+graphics}\label{horseshoe---needs-graphics}}
 
 The second method for Bayesian sparse regression is to give \(\beta\)
 some continuous \emph{sparsity inducing prior}. \textbf{Van Erp et al
@@ -668,8 +689,9 @@ there is no consensus in the literature for assigning priors to \(tau\).
 Piironen and Vehtari (2017) introduced the \emph{regularized horseshoe}
 to address both of these shortcomings of the horseshoe.
 
+\hypertarget{regularized-horseshoe---needs-graphics}{%
 \subsubsection{Regularized Horseshoe - needs
-graphics}\label{regularized-horseshoe---needs-graphics}
+graphics}\label{regularized-horseshoe---needs-graphics}}
 
 The regularized horseshoe builds upon the horseshoe prior such that
 
@@ -695,9 +717,10 @@ practice, we tune the priors for \(\lambda_k\), \(c\), and \(\tau\)
 using simulated data with features similar to our observed data (ie,
 parameters with coefficients of similar magnitude).
 
-\subsubsection{Model 3}\label{model-3}
+\hypertarget{model-3}{%
+\subsubsection{Model 3}\label{model-3}}
 
-For this study, we implement the regularize horseshoe using code
+For this study, we implement the regularized horseshoe using code
 modified from Piironen \& Vehtari.
 
 Notably, Model 3 experienced one divergent transition after warmup.
@@ -706,9 +729,21 @@ transitions. A ``false alarm'' divergent transition can occur when the
 cutoff for determining a divergent transition is too low; this can be
 true in the case of particularly complex posteriors. Because only 1 out
 of 20,000 iterations produced a divergent transition, we can proceed
-with caution using Model 3.
+with caution using Model 3. Additionally, the parameter estimates
+provided by Model 3 closely match those from Models 1 and 2, suggesting
+that the single divergent transition did not have an adverse effect on
+the posterior estimates.
 
-\subsection{Adding Spatial Structure}\label{adding-spatial-structure}
+The posterior predictive checks for Model 3 match Model 2 almost
+perfectly - this is to be expected. The addition of horseshoe priors on
+\(\beta_k\) does not attempt to improve model fit, but to determine
+which covariates are most ``important''.
+
+On that note, we can see that Model 3 \emph{did} shrink two \(\beta_k\)
+exactly to zero.
+
+\hypertarget{adding-spatial-structure}{%
+\subsection{Adding Spatial Structure}\label{adding-spatial-structure}}
 
 When modeling data with a spatial component, we generally expect
 adjacent areas to be more similar than areas which are far apart. While
@@ -750,8 +785,9 @@ different block groups than we might expect. Geographic smoothing will
 allow neighboring block groups to share information, better representing
 these ridership patterns.
 
+\hypertarget{conditional-autoregressive-priors}{%
 \subsubsection{Conditional Autoregressive
-Priors}\label{conditional-autoregressive-priors}
+Priors}\label{conditional-autoregressive-priors}}
 
 Conditional Autoregressive (CAR) priors are one of the most widespread
 Bfayesian methods for modeling spatial autocorrelation. CAR models were
@@ -836,8 +872,9 @@ billion operations (Morris et al, 2019). Given that the Metro Transit
 ridership data corresponds to 1,495 areal units, a strict CAR prior may
 be too computationally inefficient for our models.
 
+\hypertarget{intrinsic-conditional-autoregressive}{%
 \subsubsection{Intrinsic Conditional
-Autoregressive}\label{intrinsic-conditional-autoregressive}
+Autoregressive}\label{intrinsic-conditional-autoregressive}}
 
 The Intrinsic Conditional Autoregressive (ICAR) prior is a slight
 simplifation of a CAR prior. ICAR priors set \(\alpha = 1\) which
@@ -884,7 +921,8 @@ we feel in that similarity. The joint distribution can be rewritten
 This pairwise difference specification is more computationally efficient
 to fit in Stan (Morris et al, 2019).
 
-\subsubsection{Besag-York-Mollie (BYM)}\label{besag-york-mollie-bym}
+\hypertarget{besag-york-mollie-bym}{%
+\subsubsection{Besag-York-Mollie (BYM)}\label{besag-york-mollie-bym}}
 
 The specific ICAR model used in this analysis is the Besag-York-Mollie
 (BYM) Poisson model. The BYM is a ``classical'' spatial Bayesian method
@@ -935,7 +973,8 @@ There are some suggestions in the literature for setting hyperpriors for
 at hand which makes the selection of hyperparameters unnecessarily time
 consuming.
 
-\subsubsection{BYM2}\label{bym2}
+\hypertarget{bym2}{%
+\subsubsection{BYM2}\label{bym2}}
 
 The BYM2 model proposed by Simpson et al and further described in
 Riebler et al (2016) aims to solve these sampling problems. The BYM2
@@ -971,7 +1010,8 @@ Riebler et al (2016) also propose either a Beta(1/2, 1/2) or more
 specialized, complex prior for mixing parameter \(\rho\). For this
 study, we use the simpler Beta(1/2, 1/2) prior.
 
-\subsubsection{Model 4}\label{model-4}
+\hypertarget{model-4}{%
+\subsubsection{Model 4}\label{model-4}}
 
 Model 4 uses all 18 covariates of interest, no horseshoe priors, and
 decomposes \(\theta\sigma\) into a set of random effects plus a spatial
@@ -1024,7 +1064,8 @@ predictive check (Figure \_\_).
   \caption{Posterior predictive check for Model 1.}
 \end{figure}
 
-\subsubsection{Model 5}\label{model-5}
+\hypertarget{model-5}{%
+\subsubsection{Model 5}\label{model-5}}
 
 Model 5 builds upon Model 4 by incorporating regularized horsehoe priors
 in addition to spatial ICAR priors. This model has high autocorrelation
@@ -1034,39 +1075,52 @@ other models to fit in Stan (upwards of 12 hours). That said, the
 parameter estimates (Table \_\_) match our expectations in terms of sign
 and magnitude based on the previous 4 models.
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \begin{tabular}{lrrrrrr}
   \toprule
 Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
   \midrule
-beta0 & 1.0 & 5837 & -1.9 & 0.0 & -1.9 & -1.8 \\ 
-  sigma & 1.0 & 721 & 2.8 & 0.4 & 2.1 & 3.6 \\ 
-  rho & 1.0 & 713 & 0.9 & 0.0 & 0.8 & 0.9 \\ 
-  beta[1] & 1.0 & 3637 & -0.1 & 0.1 & -0.2 & -0.0 \\ 
-  beta[2] & 1.0 & 8170 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
-  beta[3] & 1.0 & 3987 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
-  beta[4] & 1.0 & 8531 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
-  beta[5] & 1.0 & 7619 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
-  beta[6] & 1.0 & 2999 & 0.2 & 0.1 & 0.1 & 0.3 \\ 
-  beta[7] & 1.0 & 3726 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
-  beta[8] & 1.0 & 7956 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
-  beta[9] & 1.0 & 5622 & 0.0 & 0.0 & -0.0 & 0.1 \\ 
-  beta[10] & 1.0 & 7530 & 0.1 & 0.0 & 0.1 & 0.2 \\ 
-  beta[11] & 1.0 & 4558 & -0.1 & 0.0 & -0.1 & 0.0 \\ 
-  beta[12] & 1.0 & 11150 & 0.0 & 0.0 & -0.0 & 0.0 \\ 
-  beta[13] & 1.0 & 8289 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
-  beta[14] & 1.0 & 5469 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
-  beta[15] & 1.0 & 4822 & 0.1 & 0.0 & -0.0 & 0.1 \\ 
-  beta[16] & 1.0 & 3863 & -0.1 & 0.0 & -0.1 & 0.0 \\ 
-  beta[17] & 1.0 & 2094 & 0.1 & 0.0 & -0.0 & 0.1 \\ 
-  beta[18] & 1.0 & 6949 & -0.0 & 0.0 & -0.1 & 0.0 \\ 
+beta0 & 1.000 & 5837 & -1.878 & 0.028 & -1.934 & -1.822 \\ 
+  sigma & 1.010 &  721 & 2.826 & 0.359 & 2.138 & 3.561 \\ 
+  theta[5] & 1.000 & 19566 & -0.188 & 0.787 & -1.722 & 1.349 \\ 
+  rho & 1.012 &  713 & 0.900 & 0.031 & 0.824 & 0.946 \\ 
+  phi[5] & 1.004 & 1652 & 5.974 & 1.573 & 3.264 & 9.527 \\ 
+  beta[1] & 1.001 & 3637 & -0.119 & 0.059 & -0.233 & -0.002 \\ 
+  beta[2] & 1.001 & 8170 & -0.005 & 0.027 & -0.069 & 0.049 \\ 
+  beta[3] & 1.000 & 3987 & 0.024 & 0.030 & -0.019 & 0.096 \\ 
+  beta[4] & 1.000 & 8531 & -0.004 & 0.022 & -0.057 & 0.040 \\ 
+  beta[5] & 1.000 & 7619 & -0.012 & 0.026 & -0.076 & 0.030 \\ 
+  beta[6] & 1.001 & 2999 & 0.164 & 0.055 & 0.051 & 0.268 \\ 
+  beta[7] & 1.000 & 3726 & 0.032 & 0.035 & -0.016 & 0.114 \\ 
+  beta[8] & 1.000 & 7956 & 0.010 & 0.025 & -0.032 & 0.074 \\ 
+  beta[9] & 1.000 & 5622 & 0.019 & 0.028 & -0.023 & 0.089 \\ 
+  beta[10] & 1.000 & 7530 & 0.144 & 0.033 & 0.079 & 0.208 \\ 
+  beta[11] & 1.000 & 4558 & -0.057 & 0.034 & -0.123 & 0.001 \\ 
+  beta[12] & 1.000 & 11150 & 0.004 & 0.018 & -0.031 & 0.046 \\ 
+  beta[13] & 1.000 & 8289 & -0.017 & 0.024 & -0.073 & 0.020 \\ 
+  beta[14] & 1.000 & 5469 & -0.028 & 0.031 & -0.100 & 0.015 \\ 
+  beta[15] & 1.000 & 4822 & 0.060 & 0.035 & -0.001 & 0.130 \\ 
+  beta[16] & 1.001 & 3863 & -0.060 & 0.038 & -0.134 & 0.003 \\ 
+  beta[17] & 1.000 & 2094 & 0.051 & 0.041 & -0.008 & 0.137 \\ 
+  beta[18] & 1.000 & 6949 & -0.010 & 0.021 & -0.061 & 0.026 \\ 
    \bottomrule
 \end{tabular}
 \caption{Stan output for Model 5} 
 \end{table}
 
-\section{Discussion}\label{discussion}
+The posterior predictive checks and mapped residuals for Model 5 are
+very similar to those for Model 4. Like Model 2, the slow sampling time
+is largely caused by autocorrelation between iterations.
+
+The more interesting comparison here is with Model 3. The horseshoe
+priors in Model 5 fail to shrink any parameters \emph{exactly} to zero.
+As previously discussed, running the model for more iterations would
+likely cuase the coverage intervals on the \(\beta_k\) estimates to
+tighten.
+
+\hypertarget{discussion}{%
+\section{Discussion}\label{discussion}}
 
 In this study, we fit several increasingly complex models building upon
 the baseline Poisson regression, Model 1. Model 2 incorporates a simple
@@ -1086,19 +1140,18 @@ however, yields a poor model fit. Perhaps unexpectedly, Model 4, the
 BYM2, is the second-most efficient in terms of convergence and Effective
 Sample Size.
 
-\begin{itemize}
-\tightlist
-\item
-  bymhrs is probably not ``worth it'', needs to be reparameterized/coded
-  by someone better than me
-\item
-  incorporating overdispersion is the most important improvement in
-  terms of model fit
-\end{itemize}
+While the most complex model \emph{does} converge and provide reasonable
+parameter estimates, its computational inefficiency may not be worth the
+addition of horseshoe priors to the BYM2 model, depending on the
+application. A more efficient approach may be to conduct variable
+selection using horseshoe priors on a simpler model (in our case, Model
+1 or Model 3, for example) before incorporating the ICAR component.
 
-\section{Appendix: Stan Code}\label{appendix-stan-code}
+\hypertarget{appendix-stan-code}{%
+\section{Appendix: Stan Code}\label{appendix-stan-code}}
 
-\subsection{Model 1}\label{model-1-1}
+\hypertarget{model-1-1}{%
+\subsection{Model 1}\label{model-1-1}}
 
 The Stan program for the baseline model is below. This model could also
 have been fit using Stan's more efficient built-in Poisson GLM function.
@@ -1145,7 +1198,8 @@ comparison between models.
 ## }
 \end{verbatim}
 
-\subsection{Model 2}\label{model-2-1}
+\hypertarget{model-2-1}{%
+\subsection{Model 2}\label{model-2-1}}
 
 The Stan program for Model 2 differs from Model 1 only in the latent
 variable, \texttt{f}.
@@ -1199,7 +1253,8 @@ variable, \texttt{f}.
 ## }
 \end{verbatim}
 
-\subsection{Model 3}\label{model-3-1}
+\hypertarget{model-3-1}{%
+\subsection{Model 3}\label{model-3-1}}
 
 The regularized horseshoe prior used to fit Model 3 is adopted from
 Piironen and Vehtari.
@@ -1279,9 +1334,10 @@ Piironen and Vehtari.
 ## }
 \end{verbatim}
 
-\subsection{Model 4}\label{model-4-1}
+\hypertarget{model-4-1}{%
+\subsection{Model 4}\label{model-4-1}}
 
-The BYM2 model is fit using code from Morris et al.
+The BYM2 model is fit using code from Morris et al.~
 
 \begin{verbatim}
 ## data {
@@ -1338,7 +1394,8 @@ The BYM2 model is fit using code from Morris et al.
 ## }
 \end{verbatim}
 
-\subsection{Model 5}\label{model-5-1}
+\hypertarget{model-5-1}{%
+\subsection{Model 5}\label{model-5-1}}
 
 Finally, the code to fit Model 5 quite literally combines the programs
 for Models 3 and 4.

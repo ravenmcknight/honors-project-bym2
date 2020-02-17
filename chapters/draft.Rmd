@@ -40,7 +40,7 @@ Conducted in tandem with Metro Transit's Network Next bus system redesign, this 
 
 ## Transit Market Areas
 
-Metro is interested in predicting transit demand across the region in order to guide route planning and service provision. Currently, Metro Transit uses a set of 5 Transit Market Areas to estimate spatial demand. The Transit Market Areas are writen into the official Transportation Planning Policy (TPP) and are calculated using a simple linear regression. Following the notation of the TPP, the formula for determing Transit Market Areas is expressed
+Metro is interested in predicting transit demand across the region in order to guide route planning and service provision. Currently, Metro Transit uses a set of 5 Transit Market Areas to estimate spatial demand. The Transit Market Areas are written into the official Transportation Planning Policy (TPP) and are calculated using a simple linear regression. Following the notation of the TPP, the formula for determine Transit Market Areas is expressed
 
 $$
 \begin{aligned}
@@ -53,16 +53,16 @@ where each predictor is logged and scaled by developed land acreage per census b
 
 
 
-\begin{figure}[htb]
+\begin{figure}[H]
   \centering
   \includegraphics[width = 5in]{TMA.png}
-  \caption{Metro Transit's Transit Market Areas from Metropolitan Council's Transportation Planning Policy, Appendix G. }
+  \caption{Metro Transit's Transit Market Areas from Metropolitan Council's Transportation Planning Policy, Appendix G.}
 \end{figure}
 
 
 Census block groups are split into 5 market areas based on the Transit Market Index described above, where the highest market area (Market Area 1) is expected to support high-frequency, all-day service and the lowest market area (Market Area 5) is expected to support peak commuter express service and park-and-rides, if that.
 
-The Transit Market Index values are geographically smoothed to create more-or-less concentric Transit Market Areas. The linear regression is an intuitive way to think about transit ridership across space. The four predictors used are common-sense indicators of transit ridership: high population and employment density are characteristic of trip origins and destinations, automobile availability is reasonably assumed to be related to transit ridership, and intersection density is a proxy for the "walkability" of an area. However, the exsiting Transit Market Area model may be over-simplifying the complex question of transit ridership. 
+The Transit Market Index values are geographically smoothed to create more-or-less concentric Transit Market Areas. The linear regression is an intuitive way to think about transit ridership across space. The four predictors used are common-sense indicators of transit ridership: high population and employment density are characteristic of trip origins and destinations, automobile availability is reasonably assumed to be related to transit ridership, and intersection density is a proxy for the "walkability" of an area. However, the existing Transit Market Area model may be over-simplifying the complex question of transit ridership. 
 
 # Data
 
@@ -84,9 +84,10 @@ This analysis began by pulling all APC, AVL, and schedule data from 2015-2018. T
   \caption{Average weekday boardings by census block group, the response variable for this analysis.}
 \end{figure}
 
+
 ### Data Interpolation
 
-In theory, we have APC data for each run bus trip in 2017. However, we know that, for a variety of reasons, this is untrue. The automatic data reporting technology on Metro Transit buses is flawed and can fail to report data unpredictably. Additionally, the trips missing data may not be random: all buses of one "series", for example, may fail to report at once. This could lead to the APC dataset understimating boardings on a particular set of routes or locations.T herefore, we use the three data sets described above to create a more complete augmented APC data set. 
+In theory, we have APC data for each run bus trip in 2017. However, we know that, for a variety of reasons, this is untrue. The automatic data reporting technology on Metro Transit buses is flawed and can fail to report data unpredictably. Additionally, the trips missing data may not be random: all buses of one "series", for example, may fail to report at once. This could lead to the APC dataset underestimating boardings on a particular set of routes or locations.T therefore, we use the three data sets described above to create a more complete augmented APC data set. 
 
 The algorithm used to interpolate data works essentially as follows: 
 
@@ -134,7 +135,9 @@ All other data sources used in this study are from outside sources. Census Block
 \end{table}
 
 
-Note that `beta[3]` is a measure of walkability. A 10-minute walk isochrone, generated using OpenTripPlanner, shows the area a person on foot can cover in 10 minutes on the existing street network. In theory, we expect more walkable areas, such as the downtown Saint Paul and Minneapolis, to have larger walk-isochrones. Unfortunately, the metric can be fooled by rural areas where you can walk uninterruped down a single roadway, for example. An improved "walkability" metric could improve models of transit ridership. 
+Note that `beta[3]` is a measure of walkability. A 10-minute walk isochrone, generated using OpenTripPlanner, shows the area a person on foot can cover in 10 minutes on the existing street network. In theory, we expect more walkable areas, such as the downtown Saint Paul and Minneapolis, to have larger walk-isochrones. Unfortunately, the metric can be fooled by rural areas where you can walk uninterrupted down a single roadway, for example. An improved "walkability" metric could improve models of transit ridership. 
+
+Nearly all studies of transit ridership incorporate some measure of employment density. Few incorporate anything more granular than number of jobs per acre or square mile. This study incorporates more detailed employment characteristics from LODES in an attempt to better isolate groups of riders in addition to areas of high ridership. 
 
 All covariates in the table above are standardized to have mean 0 and standard deviation 1. Intuitively, we expect many of the covariates to be correlated. Therefore, we will utilize variable selection to determine which covariates to keep in our analysis. 
 
@@ -181,11 +184,11 @@ $$
 
 In this study, we define $E_i$ to equal the number of times a bus stops in block group $i$. This allows us to control for block groups with more or less supply. 
 
-In the basic Poisson regression, we often give $\beta_0$ and $\beta$ vague priors such as Normal($0, 1$). The exposure term $E_i$ comes from the data and does not recieve a prior. 
+In the basic Poisson regression, we often give $\beta_0$ and $\beta$ vague priors such as Normal($0, 1$). The exposure term $E_i$ comes from the data and does not receive a prior. 
 
 ### Model 1
 
-We will call this baseline Poisson regression Model 1. Model 1 uses all 18 covariates with simple Normal(0, 1) priors and no overdispersion parameters. The Stan program used to fit Model 1, as well as the other four models, can be found in the appendix. Model 1 fits quickly and efficiently. The Stan output for $\beta_0$ and $\beta$ is below. 
+We will call this baseline Poisson regression Model 1. Model 1 uses all 18 covariates with simple Normal(0, 1) priors and no overdispersion parameters. The Stan program used to fit Model 1, as well as the other four models, can be found in the appendix. Low autocorrelation between iterations allows Model 1 to fit quickly and efficiently. The Stan output for $\beta_0$ and $\beta$ is below. 
 
 \begin{table}[ht]
 \centering
@@ -217,7 +220,15 @@ beta\_0 & 1.000 & 19365 & -1.376 & 0.005 & -1.385 & -1.366 \\
 \caption{Stan output for Model 1} 
 \end{table}
 
-Model 1 produces coefficient estimates with tight confidence intervals; few of the $\beta_k$ 95% intervals cross zero. Based on initial diagnostics and precise parameter estimates, Model 1 appears to be a "good" fit. In this way, Model 1 illustrates the importance of diagnostics beyond the default Stan output. 
+Model 1 produces coefficient estimates with tight confidence intervals; few of the $\beta_k$ 95% intervals cross zero. 
+
+Notably, $\beta_6$, or percent of residents who rent their residence, has the largest magnitude of any coefficient. This finding confirms Metro Transit's belief that "impermanence" is a good predictor of transit ridership. Broadly, "impermanence" or "instability" related with being a recent immigrant, a single parent, or even a student is expected to have a strong positive correlation with ridership. It is a novel finding within the agency that percent of residents who rent their home is a "stronger" predictor of ridership than more intuitive predictors such as median household income (in this model, the coverage interval for median household income ($\beta[1]$) crosses zero!). 
+
+Unfortunately, our 10-minute walk isochrone approximation of walkability $\beta_2$ is shown to have a negative correlation with average daily boardings. This suggests that the metric for walkability needs to be improved because we know inherently that walkability should increase ridership. 
+
+In addition to our flawed walkability metric, parameters $\beta_4, \beta_5, \beta_8, \beta_{11}, \beta_{12}, \beta_{13}, \beta_{14}, \beta_{16}, \text{and} \beta_{18}$ are negatively associated with daily boardings. The fact that $\beta_18$, population density, is negatively correlated with ridership suggests that this model is flawed: population density is widely accepted as one of the most important predictors for transit ridership. 
+
+Based on initial diagnostics and precise parameter estimates, Model 1 appears to be a "good" fit. However, posterior predictive checking reveals shortcomings in Model 1's fit. Figure __ shows the observed distribution of $Y$ in dark blue overlaid with 100 simulated observations of $Y$ produced by Model 1. In a well-fitting model, the simulated $Y$ should closely follow the observed distribution. 
 
 \begin{figure}[H]
   \centering
@@ -227,14 +238,15 @@ Model 1 produces coefficient estimates with tight confidence intervals; few of t
 
 Model 1 clearly underestimates the number of block groups with low ridership. This is due in large part to extra-Poisson variance present in Metro Transit's ridership data. 
 
-
+Figure __ maps observed versus simulated ridership. Visually, we can detect areas which are markedly different between the actual versus estimated boardings: the model tends to overestimate ridership in "middle ridership" areas (ie, block groups that are in neither the high-activity urban core nor the low-density rural/suburban outskirts of the metro area). 
+<!-- More rigorously, we can calculate moran's i -->
 
 
 ## Overdispersed Poisson Regression
 
 The most obvious assumption made in a Poisson regression is that response variable $Y$ follows a Poisson distribution. In addition to requiring integer counts, this assumption requires that $\text{Var}(Y) = \text{E}(Y)$. This is often not true in practice. In the case of the Metro Transit ridership data, $\text{Var}(Y) >>\text{E}(Y)$. In this case, we call the unexpectedly large variance "overdispersion" or "extra-Poisson variance." 
 
-Data with this feature can be difficult to model directly with a Poisson regression. One option is to use a generalization of the Poisson distribution, such as a Negative-Binomial distribution, as the observation model. For the Metro Transit application, we instead modify the latent function to include a seperate term to account for overdispersion. As such, the Poisson regression above can be rewritten to include
+Data with this feature can be difficult to model directly with a Poisson regression. One option is to use a generalization of the Poisson distribution, such as a Negative-Binomial distribution, as the observation model. For the Metro Transit application, we instead modify the latent function to include a separate term to account for overdispersion. As such, the Poisson regression above can be rewritten to include
 
 $$
 \begin{aligned}
@@ -244,13 +256,13 @@ $$
 \end{aligned}
 $$
 
-where $\theta$ is a set of heterogenous random effects. In practice, $\theta$ is scaled by its variance parameter $\sigma$ to allow eassier fitting in Stan. The addition of this set of random effects improves fits on data with overdispersion. With sufficiently vague priors, $\theta$ and $\sigma$ can account for most or all of the overdispersion not accounted for by $\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k$. 
+where $\theta$ is a set of heterogeneous random effects. In practice, $\theta$ is scaled by its variance parameter $\sigma$ to allow easier fitting in Stan. The addition of this set of random effects improves fits on data with overdispersion. With sufficiently vague priors, $\theta$ and $\sigma$ can account for most or all of the overdispersion not accounted for by $\beta_0 + \sum_{k=1}^{K}x_k^T\beta_k$. 
 
 ### Model 2
 
-Model 2 builds upon Model 1 by incorporating the set of random effects described above. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the traceplots below (Figure ___). This autocorrelation made it necessary to run Model 2 on four chains for 20,000 iterations each. Despite this, `n_eff` is significantly lower for Model 2 than Model 1. Model 2 also experienced 2 transitions exceeding maixmum treedepth: not a problem in terms of model fit, but a signal that the posterior is more challenging to fit. Reparameterization could likely reduce autocorrelation between iterations. 
+Model 2 builds upon Model 1 by incorporating the set of random effects described above. Model 2 is *significantly* more computationally expensive to fit than Model 1. This is due to relatively large autocorrelation between each iteration, visible in the trace plots below (Figure ___). This autocorrelation made it necessary to run Model 2 on four chains for 20,000 iterations each. Despite this, `n_eff` is significantly lower for Model 2 than Model 1. Model 2 also experienced 2 transitions exceeding maximum treedepth: not a problem in terms of model fit, but a signal that the posterior is more challenging to fit. Reparameterization could likely reduce autocorrelation between iterations. 
 
-The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. Notably, the direction and magnitude of the coefficient estimates are similar to those produced by Model 1. However, the coverage intervals are much wider. Based on "test runs" of Model 2, we expect increasing the number of iterations to decrease the width of these coverage intervals (we observe that the converage interval is proportional to the number of iterations in this setting). 
+The parameter estimates for $\beta_0$ and $\beta$ for Model 2 are below. Notably, the direction and magnitude of the coefficient estimates are similar to those produced by Model 1. Specifically, influential parameters such as $\beta_6$ remain influential in this setting. However, the coverage intervals for all $\beta_k$ are much wider. Based on "test runs" of Model 2, we expect increasing the number of iterations to decrease the width of these coverage intervals (we observe that the width of the coverage interval is proportional to the number of iterations in this setting). 
 
 \begin{table}[H]
 \centering
@@ -285,11 +297,14 @@ beta\_0 & 1.0 & 1354 & -1.9 & 0.0 & -2.0 & -1.8 \\
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width = 6in]{ppcheckmod2.png}
-  \caption{Posterior predictive check for Model 1.}
+  \includegraphics[height = 6in]{ppcheckmod2.png}
+  \caption{Posterior predictive check for Model 2.}
 \end{figure}
 
-Because we gave $\theta$ and $\sigma$ vague priors, we can see a *much* better fit in the posterior predictive checks for Model 2. One *could* stop analysis here. However, the addition of $\theta \sigma$ only improves the *fit* of the model, not our understanding of the data. Therefore, for this study, we will decompose $\theta \sigma$ into spatial and non-spatial random effects. First, however, we will implement a Bayesian variable selection process to determine which, if any, of our covariates $x_k$ should be removed from the analysis. 
+Because we gave $\theta$ and $\sigma$ vague priors, we can see a *much* better fit in the posterior predictive checks for Model 2. As above, Figure __ maps the observed ridership by block group versus the ridership simulated by Model 2. 
+
+
+One *could* stop analysis here. However, the addition of $\theta \sigma$ only improves the *fit* of the model, not our understanding of the data. Therefore, for this study, we will decompose $\theta \sigma$ into spatial and non-spatial random effects. First, however, we will implement a Bayesian variable selection process to determine which, if any, of our covariates $x_k$ should be removed from the analysis. 
 
 
 ## Horseshoe Priors and Variable Selection
@@ -309,11 +324,11 @@ $$
 
 for $j = 1, 2, ..., J$ where $\lambda_j \in {0, 1}$ indicates whether $\beta_j$ is from the "spike" (ie, near zero) or the "slab" (ie, nonzero). The "spike" is the area where most of the prior density for $\beta$ is centered (generally around 0) while the "slab" refers to the low-density extent of the prior. The spike-and-slab prior encourages all $\beta_j$ towards zero; only $\beta_j$ sufficiently far from 0 will be estimated to be from the slab. 
 
-The primary challenge with the spike-and-slab (and other Bayesian shrinkage methods) is the selction of priors. Priors must be set for the width of the slab $c$ and the prior inclusion probability $\pi$. Here, $\pi$ reflects our prior understanding of the sparsity of $\beta$. In practice, we rarely have strong prior knowledge of the number of predictors we expect to be distinguishable from zero. This can make the implementation of sparse regression more challenging than, say, the frequentist LASSO. 
+The primary challenge with the spike-and-slab (and other Bayesian shrinkage methods) is the Selection of priors. Priors must be set for the width of the slab $c$ and the prior inclusion probability $\pi$. Here, $\pi$ reflects our prior understanding of the sparsity of $\beta$. In practice, we rarely have strong prior knowledge of the number of predictors we expect to be distinguishable from zero. This can make the implementation of sparse regression more challenging than, say, the frequentist LASSO. 
 
 ### Horseshoe - needs graphics
 
-The second method for Bayesian sparse regression is to give $\beta$ some continuous *sparsity inducing prior*. **Van Erp et al (2019)** provide an introduction to many such continous priors. Ridge regression and the Bayesian LASSO are two of the most approachable priors, but all sparsity inducing priors utilize the same logic as the spike-and-slab: give $\beta$ a prior with *most* of its mass near 0, to shrink irrelevant coefficients, and the rest of its mass "far" from 0. Identifying "far" depends more or less on the specific data and model in question. 
+The second method for Bayesian sparse regression is to give $\beta$ some continuous *sparsity inducing prior*. **Van Erp et al (2019)** provide an introduction to many such continuous priors. Ridge regression and the Bayesian LASSO are two of the most approachable priors, but all sparsity inducing priors utilize the same logic as the spike-and-slab: give $\beta$ a prior with *most* of its mass near 0, to shrink irrelevant coefficients, and the rest of its mass "far" from 0. Identifying "far" depends more or less on the specific data and model in question. 
 
 The horseshoe prior, proposed by **Carvalho et al, 2010** is a popular choice in Bayesian literature, in part because it is similar to the "gold standard" spike-and-slab. Following the notation of **Vehtari & Piironen**, the horseshoe prior can be expressed
 
@@ -324,7 +339,7 @@ $$
 \end{aligned}
 $$
 
-for $k = 1, 2, ..., K$. The horseshoe prior is so-named because for fixed values $\tau = \lambda_k = 1$, the prior resemebles a Beta(1/2, 1/2) distribution, or a horseshoe. 
+for $k = 1, 2, ..., K$. The horseshoe prior is so-named because for fixed values $\tau = \lambda_k = 1$, the prior resembles a Beta(1/2, 1/2) distribution, or a horseshoe. 
 
 The horseshoe is often favored because it is a global-local shrinkage prior. This means that $\tau$ shrinks *all* parameters towards 0 while the local parameter $\lambda_k$ and the heavy Cauchy tails allow larger coefficients to remain unshrunk. While this is precisely the goal of a sparsity inducing prior, the horseshoe prior can fail to regularize large coefficients *at all*, which can be a problem when parameters are weakly identified by data. With no regularization applied to the largest coefficients, there is a risk of overfitting. Additionally, there is no consensus in the literature for assigning priors to $tau$. Piironen and Vehtari (2017) introduced the *regularized horseshoe* to address both of these shortcomings of the horseshoe.
 
@@ -339,25 +354,24 @@ $$
 \tilde{\lambda_k^2} & = \frac{c^2\lambda_k^2}{c^2 + \tau^2\lambda_k^2} \\
 \lambda_k & \sim \text{Half-Cauchy}(0, 1) \\
 c & \sim ~ \text{Inverse-Gamma}(a, b) \\
-\tau & \sim 
 \end{aligned}
 $$
-
+<!-- add \tau & \sim  -->
 where $c$ > 0 helps to regularize $\beta_k$ far from zero. When $c$ approaches infinity, the regularized horseshoe becomes the standard horseshoe. Additionally, $c$ in the regularized horseshoe corresponds to the slab width in the spike-and-slab prior. 
 
 As with the spike-and-slab, the selection of priors is a challenge with the regularized horseshoe. Piironen and Vehtari (2017) provide a set of recommendations for setting priors which we follow in this study. In practice, we tune the priors for $\lambda_k$, $c$, and $\tau$ using simulated data with features similar to our observed data (ie, parameters with coefficients of similar magnitude). 
 
 ### Model 3
 
-For this study, we implement the regularized horseshoe using code modified from Piironen & Vehtari. 
+For this study, we implement the regularized horseshoe using code modified from Piironen & Vehtari. We set priors following Piironen & Vehtari's recommendations. The priors assumed a priori that approximately half of the 18 covariates described in section __ are relevant. This choice was made based on the assumption that many of the covariates are correlated and therefore may be redundant. 
 
-
+Like Model 2, this model requires 20,000 iterations for each of four chains to converge and produce suitably large Effective Sample Sizes. This model is more complex and slower still than Model 2 to fit. Both the overdispersion parameter as currently programmed in Stan and the sparsity inducing priors contribute to overall computation time. 
 
 Notably, Model 3 experienced one divergent transition after warmup. However, the model was fitted several times with no divergent transitions. A "false alarm" divergent transition can occur when the cutoff for determining a divergent transition is too low; this can be true in the case of particularly complex posteriors. Because only 1 out of 20,000 iterations produced a divergent transition, we can proceed with caution using Model 3. Additionally, the parameter estimates provided by Model 3 closely match those from Models 1 and 2, suggesting that the single divergent transition did not have an adverse effect on the posterior estimates. 
 
 The posterior predictive checks for Model 3 match Model 2 almost perfectly - this is to be expected. The addition of horseshoe priors on $\beta_k$ does not attempt to improve model fit, but to determine which covariates are most "important". 
 
-On that note, we can see that Model 3 *did* shrink two $\beta_k$ exactly to zero. 
+We can see that Model 3 *did* shrink two $\beta_k$ exactly to zero. Based on our priors, we expected more than two priors to be shrunk. The fact that more coefficients were not shrunk suggests that, despite being correlated, nearly all of the 18 selected covariates have some relevance. We expect horseshoe priors to be more helpful in modeling contexts with significantly more parameters and less confidence in their importance.
 
 
 ## Adding Spatial Structure
@@ -366,20 +380,21 @@ When modeling data with a spatial component, we generally expect adjacent areas 
 
 In the case of Metro Transit's ridership data, we expect encoding spatial structure to improve the model fit in several ways. First, we know that assigning transit ridership to census geography is inherently flawed. This is because census geographies, including block groups, are generally bounded by major roads (in addition to natural features such as lakes and political boundaries such as city limits). Naturally, bus stops tend to exist along those same major roadways. 
 
+**need map to illustrate this section**
 This bounding convention means that boardings are often assigned to different block groups depending on which direction the passenger is travelling. For example, consider the A-Line running along Snelling Avenue. Boarding at Snelling and Grand *northbound* puts you in block group ____ while boarding at the same intersection but *southbound* puts you in block group ____. Integrating spatial structure will help to smooth ridership across block group bounds. **will add a map here**
 
-Additionally, we know intuitively that transit riders don't necessarily board in the block groups they live in. Particularly in dense areas, it's very likely for riders to board in a block group other than the block group they reside in. For example, I live in block group ____ but walk about 10 minutes to board the A-Line southbound at Snelling and Randolph. Commuting patterns such as these can assign ridership to different block groups than we might expect. Geographic smoothing will allow neighboring block groups to share information, better representing these ridership patterns. 
+Additionally, we know intuitively that transit riders don't necessarily board in the block groups they live in. Particularly in dense areas, it's very likely for riders to board in a block group other than the block group they reside in. For example, I live in block group __ but walk about 10 minutes to board the A-Line southbound at Snelling and Randolph in block group __. Commuting patterns such as these can assign ridership to different block groups than we might expect. Geographic smoothing will allow neighboring block groups to share information, better representing these ridership patterns. 
 
 
 ### Conditional Autoregressive Priors
 
-Conditional Autoregressive (CAR) priors are one of the most widespread Bfayesian methods for modeling spatial autocorrelation. CAR models were introduced in Besag 1974 and remain perhaps the primary method for Bayesian areal data modeling. Note that CAR models are recommended for use as *priors* rather than as an observation model. 
+Conditional Autoregressive (CAR) priors are one of the most widespread Bayesian methods for modeling spatial autocorrelation. CAR models were introduced in Besag 1974 and remain perhaps the primary method for Bayesian areal data modeling. Note that CAR models are recommended for use as *priors* rather than as an observation model. 
 
-Areal data corresponds to finitely many discrete areal units, such as counties or census tracts. CAR priors are often used in the context of small-area count data. This sort of response variable tends to be noisy, particularly when the counted event is rare, the population of areal unit $i$ is small, or the physical boundaries of areal units present challenges. CAR priors were designed in part to smooth such noisy counts. As such, they are often applied in epidemiological disease risk modeling in which disease occurences may be rare. 
+Areal data corresponds to finitely many discrete areal units, such as counties or census tracts. CAR priors are often used in the context of small-area count data. This sort of response variable tends to be noisy, particularly when the counted event is rare, the population of areal unit $i$ is small, or the physical boundaries of areal units present challenges. CAR priors were designed in part to smooth such noisy counts. As such, they are often applied in epidemiological disease risk modeling in which disease occurrences may be rare. 
 
-Generally, CAR models rely on a binary neighborhood structure. Areal units $i$ and $j$ are considered neighbors if they share a boundary. For strictly rectangular lattice data, we often choose either a "Queens" or "Rooks" neighborood structure. **insert graphics** For irregularly shaped areal data, such as our 1,495 census block groups, we generally default to a queen neighborhood structure wherein areal units sharing *any* points of contact are deemed neighbors. 
+Generally, CAR models rely on a binary neighborhood structure. Areal units $i$ and $j$ are considered neighbors if they share a boundary. For strictly rectangular lattice data, we often choose either a "Queens" or "Rooks" neighborhood structure. **insert graphics** For irregularly shaped areal data, such as our 1,495 census block groups, we generally default to a queen neighborhood structure wherein areal units sharing *any* points of contact are deemed neighbors. 
 
-For $n$ regions, the neighorhood relationships are encoded in an $n \times n$ neighborhood matrix $W$. Matrix $W$ is defined such that $w_{ij} = 1$ if if regions $i$ and $j$ are neighbors (denoted $i \sim j$) and 0 otherwise. This matrix is symmetric. Note that regions are not considered neighbors of themselves, ie the diagonal entries $w_{ii} = 0$. 
+For $n$ regions, the neighborhood relationships are encoded in an $n \times n$ neighborhood matrix $W$. Matrix $W$ is defined such that $w_{ij} = 1$ if if regions $i$ and $j$ are neighbors (denoted $i \sim j$) and 0 otherwise. This matrix is symmetric. Note that regions are not considered neighbors of themselves, ie the diagonal entries $w_{ii} = 0$. 
 
 The spatial interactions are modeled by a random variable $\phi$. Here, $\phi$ is a vector $\phi = \phi_1, \phi_2, ..., \phi_n$. The distribution of each $\phi$ is determined by the sum of its neighbors' values such that 
 
@@ -413,7 +428,7 @@ Calculating this value is computationally expensive. For models with 1,000 areal
 
 ### Intrinsic Conditional Autoregressive
 
-The Intrinsic Conditional Autoregressive (ICAR) prior is a slight simplifation of a CAR prior. ICAR priors set $\alpha = 1$ which simplifies the definition of Q
+The Intrinsic Conditional Autoregressive (ICAR) prior is a slight simplification of a CAR prior. ICAR priors set $\alpha = 1$ which simplifies the definition of Q
 
 $$
 Q = D-A
@@ -455,7 +470,7 @@ $$
 
 where $\phi$ is the addition: an ICAR component. Decomposing overdispersion as such is helpful in furthering our understanding of response $Y$. When we use a simple random effect $\theta$ alone, we can accomplish a good model fit. However, $\theta$ provides no additional information about $Y$. The decomposition of $\theta$ in the BYM allows us to better quantify how much variance is white noise (ordinary random effects) versus some unmeasured confounding correlated across space. 
 
-The BYM model as written above is appealing in its simplicity. However, the lack of informative hyperpriors specified for $\theta$ and $\phi$ can make the model incredibly challenging to fit. In theory, extra-Poisson variance could be explained 100% by $\theta$, 100% by $\phi$, or anywhere in between. In *practice*, we likely have limited information about where that ratio falls. Riebler et al (2016) further explain the sampling issues faced by the BYM model faced with no hyperpriors. In short, the sampler is forced to explore all possible combinations of $\theta$ and $\phi$, no matter how unlikely a particular combination my be. In the context of fitting models with Stan, this is liekly to cause uneccesarily long computation times and perhaps to yield biased posterior estimates. 
+The BYM model as written above is appealing in its simplicity. However, the lack of informative hyperpriors specified for $\theta$ and $\phi$ can make the model incredibly challenging to fit. In theory, extra-Poisson variance could be explained 100% by $\theta$, 100% by $\phi$, or anywhere in between. In *practice*, we likely have limited information about where that ratio falls. Riebler et al (2016) further explain the sampling issues faced by the BYM model faced with no hyperpriors. In short, the sampler is forced to explore all possible combinations of $\theta$ and $\phi$, no matter how unlikely a particular combination my be. In the context of fitting models with Stan, this is likely to cause unnecessarily long computation times and perhaps to yield biased posterior estimates. 
 
 There are some suggestions in the literature for setting hyperpriors for $\theta$ and $\phi$ (Besag and Mollie, 1991; Clayton and Montomoli, 1995). The existing methods, however, tend to rely on the specific data at hand which makes the selection of hyperparameters unnecessarily time consuming. 
 
@@ -471,45 +486,53 @@ where $\rho \in (0, 1)$ determines how much variance/overdispersion is caused by
 
 Setting priors is somewhat more straightforward for the BYM2. The ICAR component, $\phi^{*}$ remains unchanged. Riebler and Morris recommend the prior $\theta \sim$ Normal($0, n)$ where $n$ is the number of connected graphs in the neighborhood graph. In many cases, such as modeling data for all counties in a state, $n=1$. When $n>1$, the variance is different in each subgraph which affects $\sigma$ and $s$. It is possible to fit the model in this case, although computation time is much longer. 
 
-A relatively vague Normal(0, 1) prior is appropriate for $\sigma$. Riebler et al (2016) also propose either a Beta(1/2, 1/2) or more specialized, complex prior for mixing parameter $\rho$. For this study, we use the simpler Beta(1/2, 1/2) prior. 
+A relatively vague Normal(0, 1) prior is appropriate for $\sigma$. Riebler et al (2016) propose either a Beta(1/2, 1/2) or more specialized, complex prior for mixing parameter $\rho$. For this study, we use the simpler Beta(1/2, 1/2) prior. 
 
 
 ### Model 4
 
-Model 4 uses all 18 covariates of interest, no horseshoe priors, and decomposes $\theta\sigma$ into a set of random effects plus a spatial ICAR component. This model converges much more efficiently than Model 2 or Model 3 due to careful reparameterization of the BYM by Riebler et al (2016). Future would could potentially improve the speed of fitting Models 2 and 3. 
+Model 4 uses all 18 covariates of interest, no horseshoe priors, and decomposes $\theta\sigma$ into a set of random effects plus a spatial ICAR component. 
+
+This model converges much more efficiently than Model 2 or Model 3 due to careful reparameterization of the BYM by Riebler et al (2016). Future work could likely improve the speed of fitting Models 2 and 3. 
 
 Model 4 was run on four chains for 10,000 iterations each. The parameter estimates for Model 4 are below. Note that `n_eff` is lower than for Model 1 but significantly higher than Model 2 or 3. 
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \begin{tabular}{lrrrrrr}
   \toprule
 Parameter & Rhat & n\_eff & mean & sd & 2.5\% & 97.5\% \\ 
   \midrule
-beta0 & 1.001 & 4770 & -1.880 & 0.028 & -1.937 & -1.825 \\ 
-  sigma & 1.003 &  520 & 2.698 & 0.372 & 1.993 & 3.451 \\ 
-  rho & 1.002 &  514 & 0.888 & 0.038 & 0.793 & 0.941 \\ 
-  theta[5] & 1.000 & 17797 & -0.179 & 0.777 & -1.688 & 1.336 \\ 
-  beta[1] & 1.000 & 4322 & 0.034 & 0.047 & -0.056 & 0.127 \\ 
-  beta[2] & 1.001 & 3801 & 0.061 & 0.035 & -0.009 & 0.131 \\ 
-  beta[3] & 1.000 & 4203 & -0.003 & 0.039 & -0.080 & 0.073 \\ 
-  beta[4] & 1.001 & 4330 & -0.049 & 0.044 & -0.134 & 0.037 \\ 
-  beta[5] & 1.000 & 4706 & 0.209 & 0.042 & 0.127 & 0.292 \\ 
-  beta[6] & 1.000 & 4919 & 0.065 & 0.038 & -0.009 & 0.138 \\ 
-  beta[7] & 1.002 & 3929 & 0.029 & 0.038 & -0.046 & 0.104 \\ 
-  beta[8] & 1.000 & 6278 & 0.145 & 0.032 & 0.083 & 0.207 \\ 
-  beta[9] & 1.000 & 4607 & -0.088 & 0.031 & -0.150 & -0.026 \\ 
-  beta[10] & 1.000 & 6145 & 0.014 & 0.029 & -0.043 & 0.070 \\ 
-  beta[11] & 1.000 & 6978 & -0.022 & 0.031 & -0.083 & 0.040 \\ 
-  beta[12] & 1.000 & 6125 & -0.068 & 0.034 & -0.136 & -0.002 \\ 
-  beta[13] & 1.000 & 5875 & 0.094 & 0.033 & 0.029 & 0.158 \\ 
-  beta[14] & 1.000 & 4743 & -0.089 & 0.035 & -0.157 & -0.019 \\ 
-  beta[15] & 1.001 & 2720 & 0.076 & 0.039 & 0.001 & 0.151 \\ 
-  beta[16] & 1.000 & 6053 & -0.029 & 0.031 & -0.091 & 0.031 \\ 
+beta0 & 1.000 & 5803 & -1.893 & 0.029 & -1.950 & -1.836 \\ 
+  sigma & 1.004 &  552 & 2.755 & 0.373 & 2.050 & 3.495 \\ 
+  rho & 1.004 &  556 & 0.893 & 0.037 & 0.806 & 0.943 \\ 
+  theta[5] & 1.000 & 20232 & -0.195 & 0.781 & -1.743 & 1.334 \\ 
+  phi[5] & 1.002 & 1150 & 6.340 & 1.699 & 3.526 & 10.018 \\ 
+  beta[1] & 1.000 & 5929 & -0.134 & 0.051 & -0.234 & -0.034 \\ 
+  beta[2] & 1.001 & 4670 & 0.009 & 0.052 & -0.093 & 0.112 \\ 
+  beta[3] & 1.000 & 4406 & 0.054 & 0.036 & -0.017 & 0.125 \\ 
+  beta[4] & 1.000 & 4538 & -0.032 & 0.040 & -0.112 & 0.047 \\ 
+  beta[5] & 1.000 & 4585 & -0.044 & 0.044 & -0.130 & 0.043 \\ 
+  beta[6] & 1.000 & 5071 & 0.151 & 0.048 & 0.057 & 0.244 \\ 
+  beta[7] & 1.001 & 4621 & 0.050 & 0.038 & -0.025 & 0.125 \\ 
+  beta[8] & 1.001 & 5089 & 0.057 & 0.047 & -0.033 & 0.148 \\ 
+  beta[9] & 1.000 & 4603 & 0.049 & 0.042 & -0.034 & 0.131 \\ 
+  beta[10] & 1.000 & 6915 & 0.146 & 0.031 & 0.085 & 0.208 \\ 
+  beta[11] & 1.001 & 6255 & -0.084 & 0.031 & -0.145 & -0.023 \\ 
+  beta[12] & 1.000 & 6891 & 0.014 & 0.029 & -0.043 & 0.071 \\ 
+  beta[13] & 1.000 & 8267 & -0.027 & 0.031 & -0.088 & 0.035 \\ 
+  beta[14] & 1.001 & 6420 & -0.069 & 0.034 & -0.135 & -0.001 \\ 
+  beta[15] & 1.000 & 6277 & 0.090 & 0.033 & 0.027 & 0.155 \\ 
+  beta[16] & 1.000 & 5411 & -0.093 & 0.035 & -0.162 & -0.025 \\ 
+  beta[17] & 1.001 & 2951 & 0.067 & 0.040 & -0.012 & 0.146 \\ 
+  beta[18] & 1.001 & 6516 & -0.027 & 0.031 & -0.088 & 0.034 \\ 
    \bottomrule
 \end{tabular}
 \caption{Stan output for Model 4} 
 \end{table}
+
+
+
 
 Like Models 2 and 3, the BYM2 model performs well in the posterior predictive check (Figure __). 
 
@@ -523,7 +546,7 @@ Like Models 2 and 3, the BYM2 model performs well in the posterior predictive ch
 
 ### Model 5
 
-Model 5 builds upon Model 4 by incorporating regularized horsehoe priors in addition to spatial ICAR priors. This model has high autocorrelation between iterations and took *significantly* longer than any of the other models to fit in Stan (upwards of 12 hours). That said, the `n_eff` and $\hat{R}$ diagnostics indicate convergence and the parameter estimates (Table __) match our expectations in terms of sign and magnitude based on the previous 4 models. 
+Model 5 builds upon Model 4 by incorporating regularized horseshoe priors in addition to spatial ICAR priors. This model has high autocorrelation between iterations and took *significantly* longer than any of the other models to fit in Stan (upwards of 12 hours). That said, the `n_eff` and $\hat{R}$ diagnostics indicate convergence and the parameter estimates (Table __) match our expectations in terms of sign and magnitude based on the previous 4 models. 
 
 \begin{table}[H]
 \centering
@@ -556,16 +579,18 @@ beta0 & 1.000 & 5837 & -1.878 & 0.028 & -1.934 & -1.822 \\
   beta[18] & 1.000 & 6949 & -0.010 & 0.021 & -0.061 & 0.026 \\ 
    \bottomrule
 \end{tabular}
-\caption{Stan output for Model 5} 
+\caption{Stan output for Model 5.} 
 \end{table}
 
-The posterior predictive checks and mapped residuals for Model 5 are very similar to those for Model 4. Like Model 2, the slow sampling time is largely caused by autocorrelation between iterations. 
+The posterior means for $\sigma$ and $\rho$, as well as a "random" $\theta$ value are all similar to the posterior means of Model 4. 
+
+The posterior predictive checks and mapped residuals for Model 5 are very similar to those for Model 4. Like Model 2, the slow sampling time is largely caused by autocorrelation between iterations. In this case, the autocorrelation appears to be introduced by the horseshoe prior rather than by the well-parameterized BYM2. 
+
+The more interesting comparison here is with Model 3. The horseshoe priors in Model 5 fail to shrink any parameters *exactly* to zero. As previously discussed, running the model for more iterations would likely cause the coverage intervals on the $\beta_k$ estimates to tighten. 
 
 
 
-The more interesting comparison here is with Model 3. The horseshoe priors in Model 5 fail to shrink any parameters *exactly* to zero. As previously discussed, running the model for more iterations would likely cuase the coverage intervals on the $\beta_k$ estimates to tighten. 
-
-# Discussion
+# Discussion/Results?
 
 In this study, we fit several increasingly complex models building upon the baseline Poisson regression, Model 1. Model 2 incorporates a simple set of random effects to account for overdispersion. Model 3 incorporates regularized horseshoe priors for variable selection. Model 4 includes the spatial ICAR priors but no horseshoe priors, and Model 5 includes both regularized horseshoe priors and ICAR priors. 
 
@@ -573,12 +598,20 @@ All five models were run for at least 10,000 iterations and "pass" the basic dia
 
 Naturally, the baseline Model 1 converges most quickly and has the highest `n_eff` diagnostics. The simplicity of the Model, however, yields a poor model fit. Perhaps unexpectedly, Model 4, the BYM2, is the second-most efficient in terms of convergence and Effective Sample Size. 
 
-
 While the most complex model *does* converge and provide reasonable parameter estimates, its computational inefficiency may not be worth the addition of horseshoe priors to the BYM2 model, depending on the application. A more efficient approach may be to conduct variable selection using horseshoe priors on a simpler model (in our case, Model 1 or Model 3, for example) before incorporating the ICAR component. 
 
+The results of all five models fit in this study provide insights the existing Transit Market Areas cannot. Many of the results confirm institutional or intuitive knowledge at Metro Transit: for example, that "impermanence", represented here by percent of residents renting, is a good predictor of transit ridership.   
+
+**once latex is working, this is where the table of posterior estimates was**
 
 
+## Future Work
 
+The work in this study will be the foundation of a temporal study at Metro Transit. In the process of fitting the models discussed above, Metro Transit data and covariates were prepared for years 2015-2018. Future work will include applying these models to each year and/or incorporating explicitly temporal trends into the models. 
+
+Many other covariates can be considered. The 18 selected for this study were selected largely based off of interest and perceived importance. Additional or more detailed demographic predictors could be incorporated: for example, percent of residents identified as immigrants (assuming recent immigrants may be transit reliant) or age or income breakdowns rather than simple medians. This study incorporated no land use characteristics or service-based predictors. Incorporating either could improve model fits or reveal new insights. 
+
+In a different vein, there is interest at Metro Transit in developing a "transit-specific geography" to solve the bounding problem discussed in Section __ such that future models would not necessarily rely on geographic smoothing. 
 
 # Appendix: Stan Code
 
