@@ -79,3 +79,20 @@ apc_ag[, year_activity := year_boards + year_alights, keyby = .(GEOID)]
 saveRDS(apc_ag, 'data/modeling-dat/basic_mod_dat_ann17.RDS')
 
 
+# apc interp to daily by stop
+apc <- readRDS('data/metro-transit/apc-interpolated.RDS')
+setDT(apc)
+apc17 <- apc[year(ymd(date_key)) == 2017]
+
+, apc_day_stop <- apc[year(ymd(date_key)) == 2017, .(boards = sum(board, na.rm = T), alights = sum(alight, na.rm = TRUE), 
+                        num_interp = sum(interpolated)), keyby = .(date_key, site_id)]
+saveRDS(apc_day, "data/metro-transit/daily_stop_apc17.RDS")
+
+
+# daily by region
+apc_day <- apc[year(ymd(date_key)) == 2017, .(boards = sum(board, na.rm = T), alights = sum(alight, na.rm = TRUE), 
+                   num_interp = sum(interpolated)), keyby = .(date_key)]
+saveRDS(apc_day, "data/metro-transit/daily_apc17.RDS")
+
+
+

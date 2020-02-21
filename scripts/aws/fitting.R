@@ -48,10 +48,11 @@ poisson <- "~/Documents/honors/honors-project/stan/final-stan/poisson.stan"
 
 ## add horseshoe priors -------------------------
 
-poisson_hrs <- "~/Documents/honors/honors-project/stan/final-stan/poisson_horseshoe.stan"
-poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 10000, verbose = T,
+poisson_hrs <- "~/Documents/honors/honors-project/stan/final-stan/poisson_theta_horseshoe.stan"
+poisson_hrs_fit <- stan(poisson_hrs, data = horseshoe_dat, iter = 20000, verbose = T,
                         control = list(adapt_delta = 0.99, max_treedepth = 15), seed = 1997)
-#saveRDS(poisson_hrs_fit, '~/Documents/honors/honors-project/final-fits/poisson_hrs_fit.RDS')
+saveRDS(poisson_hrs_fit, '~/Documents/honors/honors-project/final-fits/poisson_hrs_all_fit.RDS')
+drop_upload('~/Documents/honors/honors-project/final-fits/poisson_hrs_all_fit.RDS')
 
 #so... it's run with no divergences before, but with a predictor i don't want to include.... i think i'll use this with a disclaimer
 
