@@ -69,7 +69,7 @@ png("~/Desktop/zoomrides.png", units="in", width=12, height=12, res=400)
 ggplot(sfdat) +
   #geom_sf(color = "#0b3344", lwd = 0.1, fill = "transparent") +
   geom_sf(color = "#0b3344", lwd = 0.1, aes(fill = log(daily_boards))) + 
-  geom_sf(data = msp, color = "#ffba58", fill = "transparent", lwd = 0.5) +
+  geom_sf(data = msp, color = "#fa8495", fill = "transparent", lwd = 0.5) +
   theme_minimal() +
   theme(axis.text = element_text(colour= "#0b3344" ), axis.title = element_text(color = "#0b3344"), 
         plot.title = element_text(color = "#0b3344", hjust = 0.5), 
@@ -198,8 +198,7 @@ library(ggspatial)
 nc_map <- get_map(location = "Saint Paul, MN", zoom = 7)
 
 
-nb <- bgs %>%
-  dplyr::filter(GEOID %in% c(271230364004, 271230365002, 271230364002, 271230365001))
+
 
 png("~/Desktop/nb.png", units="in", width=12, height=12, res=300)
 ggplot(nb) +
@@ -209,6 +208,16 @@ ggplot(nb) +
 dev.off()
 
 library(leaflet)
+nb <- bgs %>%
+  dplyr::filter(GEOID %in% c(271230364004, 271230365002, 271230351001, 271230352003,  271230352002))
+
+stops <- st_read("shp_trans_transit_stops/TransitStops.shp")
+stops <- st_transform(stops, 4269 )
+nbstops <- st_intersection(stops, nb)
+nbstops <- unique(nbstops)
+
 leaflet(nb) %>%
-  addTiles() %>%
-  addPolygons()
+  addTiles(options= tileOptions(opacity = 0.5)) %>%
+  addPolygons(color = "#ffba58", weight = 6, opacity = 1) %>%
+  addCircleMarkers(data = nbstops, weight = 2, radius = 5,
+                   opacity = 1, fillOpacity = 1, color = "#fa8495")
