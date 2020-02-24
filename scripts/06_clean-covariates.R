@@ -15,23 +15,27 @@ rm(miss_pkgs, packages)
 options(tigris_class = 'sf')
 
 # add basic acs
-acs <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/basic_acs.RDS')
+acs <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/basic_acs.RDS')
 setDT(acs)
 acs <- acs[year == 3]
 
-educ <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/education.RDS')
-house_veh <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/housing-and-vehicles.RDS')
-language <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/language.RDS')
-nativity <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/nativity.RDS')
-wac <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/wac/all-wac.RDS')
-acs_emp <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/acs-emp.RDS')
-walk <- readRDS('/Users/mcknigri/Documents/honors/honors-project/data/covariates/walkability.RDS')
+educ <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/education.RDS')
+house_veh <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/housing-and-vehicles.RDS')
+language <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/language.RDS')
+nativity <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/nativity.RDS')
+wac <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/wac/all-wac.RDS')
+acs_emp <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/acs-emp.RDS')
+walk <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/walkability.RDS')
+pub <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/pub_benefits_tract.RDS')
+late <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/misc_late.RDS')
 setDT(educ)
 setDT(house_veh)
 setDT(language)
 setDT(nativity)
 setDT(wac)
 setDT(acs_emp)
+setDT(pub)
+setDT(late)
 
 acs[, year := NULL]
 acs[, NAME := NULL]
@@ -71,6 +75,11 @@ mod_dat[, pop_density := estimate_tot_pop/sqkm]
 mod_dat[, c('STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NAMELSAD', 'MTFCC', 'FUNCSTAT', 
             'ALAND', 'AWATER', 'INTPTLAT', 'INTPTLON', 'geometry') := NULL]
 
+setnames(pub, 'GEOID', 'tract_GEOID')
+mod_dat <- merge(mod_dat, pub[, c('perc_recieve_benefits', 'tract_GEOID')], by = 'tract_GEOID', all.x = TRUE)
+
+mod_dat <- merge(mod_dat, late, by = 'GEOID', all.x = TRUE)
+
 # save un-standardized
 saveRDS(mod_dat, 'data/modeling-dat/ag-2017-dat.RDS')
 
@@ -80,7 +89,9 @@ small_dat <- mod_dat[, c("GEOID", "estimate_median_hh_income", "perc_only_white"
                          "perc_hs", "perc_bach", "perc_rent", "perc_no_veh", "perc_english_only", "perc_foreign",
                          "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_perc_jobs_men",
                          "w_perc_jobs_no_college", "w_perc_jobs_less40", "w_perc_jobs_age_less30", 
-                         "sqkm", "estimate_tot_pop", "estimate_median_age", "perc_transit_comm", "pop_density")]
+                         "sqkm", "estimate_tot_pop", "estimate_median_age", "perc_transit_comm", "pop_density", 
+                         "perc_in_labor_force", "perc_struct_2010", "perc_vacant", "total_children", 
+                         "med_gross_rent", "perc_work_from_home", "perc_recieve_benefits")]
 setDT(small_dat)
 
 

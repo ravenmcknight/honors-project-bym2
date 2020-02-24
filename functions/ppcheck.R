@@ -30,12 +30,12 @@ y <- na.omit(p_dat_scaled)$daily_boards
   
   ppoverlay + xlim(0, 200) + ylim(0, 0.026) + 
     labs(title = "Observed versus simulated ridership for Model 2")
-  ggsave("~/Documents/honors/honors-projects/chapters/ppcheckmod2.png", width = 6, units = "in")
+  ggsave("~/Documents/honors/honors-project/chapters/ppcheckmod2.png", width = 6, units = "in")
   
    ## get traceplot
   
   trace <- mcmc_trace(samp2, pars = c("beta_0"))
-  
+  trace
   ## get parcoord
   
   np <-  nuts_params(post)

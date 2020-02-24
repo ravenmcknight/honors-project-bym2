@@ -186,6 +186,79 @@ acs_emp[, perc_transit_comm := estimate_transit_commute/estimate_total_commute]
 
 saveRDS(acs_emp, 'data/covariates/acs-emp.RDS')
 
+## late additions -----------------------------------------
+
+shortyears <- c(2017)
+late <- map_dfr(
+  shortyears,
+  ~ get_acs(
+    geography = "block group",
+    variables = c(work_from_home = "B08301_021", 
+                  total_children = "B09002_001", 
+                  pub_snap_total_pop = "B19058_001", 
+                  pub_snap_recieved = "B19058_002", 
+                  emp_total_pop = "B23025_001", 
+                  in_labor_force = "B23025_002", 
+                  vacancy_total_units = "B25002_001", 
+                  vacancies = "B25002_003",
+                  structures_total = "B25034_001", 
+                  structures_2000 = "B25034_004",
+                  structures_2010 = "B25034_003", 
+                  structures_2014 = "B25034_002", 
+                  med_gross_rent = "B25064_001"
+                  ),
+    state = "MN",
+    county = counties,
+    year = .x,
+    survey = "acs5"
+  ),
+  .id = "year"
+)
+
+saveRDS(late, 'data/covariates/unclean_late.RDS')
+
+late <- late %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
+
+late <- late %>%
+  select(-c(estimate_pub_snap_total_pop, estimate_pub_snap_recieved, moe_pub_snap_total_pop, moe_pub_snap_recieved))
+
+setDT(late)
+late[, (which(names(late)  %like% "moe")) := NULL]
+late[, perc_in_labor_force := estimate_in_labor_force/estimate_emp_total_pop]
+late[, perc_struct_2010 := (estimate_structures_2010 + estimate_structures_2014)/estimate_structures_total]
+late[, perc_vacant := estimate_vacancies/estimate_vacancy_total_units]
+late[, total_children := estimate_total_children]
+late[, med_gross_rent := estimate_med_gross_rent]
+late[, perc_work_from_home := estimate_work_from_home/estimate_emp_total_pop]
+
+latevars <- late[, c('GEOID', 'perc_in_labor_force', 'perc_struct_2010', 'perc_vacant', 'total_children', 
+                     'med_gross_rent', 'perc_work_from_home')]
+saveRDS(latevars, 'data/covariates/misc_late.RDS')
+
+late_tract <- map_dfr(
+  shortyears,
+  ~ get_acs(
+    geography = "tract",
+    variables = c(pub_snap_total_pop = "B19058_001", 
+                  pub_snap_recieved = "B19058_002"
+    ),
+    state = "MN",
+    county = counties,
+    year = .x,
+    survey = "acs5"
+  ),
+  .id = "year"
+)
+
+late_tract <- late_tract %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
+setDT(late_tract)
+late_tract[, perc_recieve_benefits := estimate_pub_snap_recieved/estimate_pub_snap_total_pop]
+saveRDS(late_tract, 'data/covariates/pub_benefits_tract.RDS')
+
+
+## age cohorts --------------------------------------------
+
+
 ## employment data ----------------------------------------
 
 # i'll use the employment data i cleaned here:

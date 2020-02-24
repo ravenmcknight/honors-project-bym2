@@ -42,9 +42,9 @@ horseshoe_dat <- list(y = y, E = E, x = x, K = K, N = N,
 ## basic poisson --------------------------------
 
 poisson <- "~/Documents/honors/honors-project/stan/final-stan/poisson.stan"
-#poisson_fit <- stan(poisson, data = standat1, iter = 10000, verbose = T, seed = 1997)
+poisson_fit <- stan(poisson, data = standat1, iter = 10000, verbose = T, seed = 1997)
 
-#saveRDS(poisson_fit, '~/Documents/honors/honors-project/final-fits/poisson_fit.RDS')
+saveRDS(poisson_fit, '~/Documents/honors/honors-project/final-fits/poisson_fit_more.RDS')
 
 ## add horseshoe priors -------------------------
 
@@ -75,7 +75,7 @@ saveRDS(poisson_theta_fit, "~/Documents/honors/honors-project/final-fits/poisson
 
 ## and the bym ! --------------------------------
 
-bym2 <- "~/Documents/honors/honors-project/stan/bym2.stan"
+bym2 <- "~/Documents/honors/honors-project/stan/final-stan/bym2.stan"
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
 bgs <- block_groups("MN", counties, 2017)
 
@@ -99,12 +99,12 @@ Q_inv <- inla.qinv(Q_pert, constr = list(A = matrix(1, 1, nbs$N), e = 0))
 
 scaling_factor <- exp(mean(log(diag(Q_inv))))
 
-bym_dat <- list(y = y2, E = E2, x = x2, K = K2, 
+bym_dat <- list(y = y2, E = E2, x = x, K = K, 
                 N = N2, node1 = node1, node2 = node2, N_edges = N_edges, scaling_factor = scaling_factor)
 
-#bym_fit <- stan(bym2, data = bym_dat, iter = 10000, verbose = T, seed = 1997, 
-#                control = list(max_treedepth = 12))
-#saveRDS(bym_fit, "~/Documents/honors/honors-project/final-fits/bym.RDS")
+bym_fit <- stan(bym2, data = bym_dat, iter = 10000, verbose = T, seed = 1997, 
+                control = list(max_treedepth = 12))
+saveRDS(bym_fit, "~/Documents/honors/honors-project/final-fits/bym.RDS")
 
 ## bym with horseshoe?? -------------------------
 
