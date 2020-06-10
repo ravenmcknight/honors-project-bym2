@@ -33,14 +33,22 @@ makeHist <- function(dat, var, titles) {
 ## MAKE MAPS ##
 # theoretically should be basically the same
 
-makeMap <- function(dat, var, titles) {
-  ggobj <- ggplot(data = dat, aes_string(x = var)) + 
-    geom_sf() +
+makeMap <- function(dat, var, titles, legend_titles) {
+  ggobj <- ggplot(data = dat) + 
+    geom_sf(aes_string(fill = var), lwd = 0) +
     theme_light() +
     labs(title = paste0(titles),
-         subtitle = "By Census Block Group, 2017",
-         x = "value") 
-  ggsave(sprintf("%s.png", var))
+         subtitle = "By Census Block Group, 2017", 
+         fill = legend_titles) +
+    scale_fill_viridis_c()
+  ggsave(sprintf("img/map/%s.png", var))
 }
 
 
+testvars <- c('genz', 'millenial', 'genx', 'boomer')
+testtitles <- c("Genz", "Millenial", "Genx", "Boomer")
+ltitles <- c("perc", "perc", "perc", "perc")
+
+for(i in 1:length(testtitles)){
+  makeMap(sfdat, testvars[i], testtitles[i], ltitles[i])
+}
