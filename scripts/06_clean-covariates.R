@@ -81,7 +81,8 @@ cov[, sqkm := ALAND/1000000]
 cov[, emp_density := w_total_jobs_here/sqkm]
 cov[, pop_density := estimate_tot_pop/sqkm]
 cov[, c('STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NAMELSAD', 'MTFCC', 'FUNCSTAT', 
-            'ALAND', 'AWATER', 'INTPTLAT', 'INTPTLON', 'geometry') := NULL]
+            'ALAND', 'AWATER', 'INTPTLAT', 'INTPTLON', 'geometry', 'summary_est') := NULL]
+setnames(cov, "i.summary_est", "veh_summary_val")
 
 # save un-standardized
 saveRDS(cov, 'data/covariates/cleaned/all_covariates.RDS')

@@ -43,11 +43,12 @@ source("functions/plotting.R")
 hist_titles <- c("Unemployment rate", "Percent foreign-born residents", "Percent of residents who commute via transit",
                  "Percent of residents who work from home", "Walkability", "Average number of vehicles per household", 
                  "Percent of residents who speak English only", "Percent of housing units occupied by renters", 
-                 "Percent of residents with high school diploma", "Percent of residents with bachelors degree", 
+                 "Percent of residents with high school diploma \n(highest educational attainment)", 
+                 "Percent of residents with bachelors degree \n(highest educational attainment)", 
                  "Median age", "Median household income", "Percent of residents white alone", 
                  "Percent of jobs for employees under age 30", "Percent of jobs for white employees", 
                  "Percent of jobs for men", "Percent of jobs making less than $40,000", 
-                 "Percent of jobs for employees without college degrees", "Percent of population age 0-25", 
+                 "Percent of jobs for employees without \ncollege degrees", "Percent of population age 0-25", 
                  "Percent of population age 26-40", "Percent of population age 41-55", "Percent of population age 55+", 
                  "Employment density", "Population density")
 
@@ -56,8 +57,8 @@ for(i in 1:length(hist_titles)){
 }
 
 ## maps
-legend_titles <- c("rate", "percent", "percent", "percent", "isochrone area", "average number", "percent", 
-                   "percent", "percent", "percent", "years", "usd", rep("percent", 10), "jobs/sqmi", "people/sqmi")
+legend_titles <- c("rate", "percent", "percent", "percent", "area", "average", "percent", 
+                   "percent", "percent", "percent", "years", "usd", rep("percent", 10), "density", "density")
 
 for(i in 1:length(hist_titles)){
   makeMap(sfdat, names(tomap)[i], hist_titles[i], legend_titles[i])

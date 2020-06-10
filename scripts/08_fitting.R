@@ -26,7 +26,7 @@ setDT(mod_dat)
 
 xdat <- mod_dat[, .(perc_foreign, walkability, perc_rent, perc_english_only,
                     perc_hs, perc_bach, estimate_median_age, estimate_median_hh_income,
-                    perc_only_white, w_perc_jobs_white, w_perc_jobs_men, 
+                    perc_only_white, w_perc_jobs_white, w_perc_jobs_men, perc_no_veh,
                     w_perc_jobs_no_college, w_perc_jobs_less40, w_perc_jobs_age_less30, 
                     emp_density, pop_density, daily_stops, perc_transit_comm)]
 

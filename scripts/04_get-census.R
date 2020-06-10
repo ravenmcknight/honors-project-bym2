@@ -241,7 +241,8 @@ vehicles$five <- rowSums(vehicles[, ..five])
 
 vehicles[, totalveh := zero*0 + one*1 + two*2 + three*3 + four*4 + five*5]
 vehicles[, avg_veh := totalveh/summary_est]
-vehicles <- vehicles[, .(year, GEOID, summary_est, zero, one, two, three, four, five, totalveh, avg_veh)]
+vehicles[, perc_no_veh := zero/summary_est]
+vehicles <- vehicles[, .(year, GEOID, summary_est, zero, one, two, three, four, five, totalveh, avg_veh, perc_no_veh)]
 saveRDS(vehicles, "data/covariates/vehicles.RDS")
 
 # acs employment data ---------------------------
