@@ -1,4 +1,5 @@
 # Goal: get census variables of interest, 2015-2017
+# I'm sure there are more refined ways to do this 
 
 ## packages -----------------------------------------------
 
@@ -22,15 +23,17 @@ options(tigris_class = 'sf')
 # look at acs 5yr estimates for 2015
 v15 <- load_variables(2015, "acs5", cache = TRUE)
 setDT(v15)
+# use this to look at variables
 View(v15)
 
-# start by pulling some basics for a first model
-# this document will likely be updated often as I go
+# get counties
 counties <- c('Anoka', 'Carver', 'Dakota', 'Hennepin', 'Ramsey', 'Scott', 'Washington')
+bgs <- block_groups("MN", counties, 2016)
 
 # 2018 acs not out yet
 years <- list(2015, 2016, 2017)
 
+## basics ---------------------------------------
 basics <- map_dfr(
   years,
   ~ get_acs(
@@ -50,9 +53,52 @@ basics <- map_dfr(
 basics <- basics %>% pivot_wider(names_from = 'variable', values_from = c('estimate', 'moe'))
 setDT(basics)
 basics[, perc_only_white := estimate_white_alone/estimate_tot_pop]
-head(basics)
+basics <- basics[, .(year, GEOID, estimate_median_age, estimate_tot_pop, estimate_median_hh_income, perc_only_white)]
 
 saveRDS(basics, 'data/covariates/basic_acs.RDS')
+
+## age cohorts ----------------------------------
+
+agecohorts <- map_dfr(
+  years, 
+  ~ get_acs(
+    geography = "block group",
+    table = "B01001",
+    summary_var = "B01001_001",  # should have used this throughout!
+    state = "MN",
+    county = counties,
+    year = .x,
+    survey = "acs5"
+  ),
+  .id = "year"
+)
+
+agecohorts2 <- agecohorts %>% pivot_wider(names_from = 'variable', values_from = c('estimate', 'moe'))
+setDT(agecohorts2)
+
+# simplify to gen z, millenials, gen x, boomers+
+  
+genz <- paste0("estimate_B01001_", c('003', '004', '005', '006', '007', '008', '009', '010', 
+          '027', '028', '029', '030', '031', '032', '033', '034'))
+
+millenial <- paste0("estimate_B01001_", c('011', '012', '013', '035', '036', '037'))
+
+genx <- paste0("estimate_B01001_", c('014', '015', '016', '038', '039', '040'))
+
+boomer <- paste0("estimate_B01001_", c('017', '018', '019', '020', '021', '022', '023', '024', '025', 
+            '041', '042', '043', '044', '045', '046', '047', '048', '049'))
+
+agecohorts2$genz <- rowSums(agecohorts2[, ..genz])
+agecohorts2$millenial <- rowSums(agecohorts2[, ..millenial])
+agecohorts2$genx <- rowSums(agecohorts2[, ..genx])
+agecohorts2$boomer <- rowSums(agecohorts2[, ..boomer])
+
+agecohorts <- agecohorts2[, `:=`(genz = genz/summary_est, millenial = millenial/summary_est, 
+                                 genx = genx/summary_est, boomer = boomer/summary_est)]
+agecohorts <- agecohorts[, .(year, GEOID, summary_est, genz, millenial, genx, boomer)]
+
+saveRDS(agecohorts, "data/covariates/agecohorts.RDS")
+
 
 ## language spoken at home ----------------------
 
@@ -79,12 +125,9 @@ setDT(language)
 language[, est_tot_over5 := estimate_total_517 + estimate_total_1864 + estimate_tot_65]
 language[, est_tot_eng_only := estimate_speak_only_english_517 + estimate_speak_only_english_1864 + estimate_speak_only_english_65]
 language[, perc_english_only := est_tot_eng_only/est_tot_over5]
+language <- language[, .(year, GEOID, perc_english_only)]
 
-# mostly want the last column but should save everything because of MOEs
 saveRDS(language, 'data/covariates/language.RDS')
-
-# these are pretty big moes
-ggplot(language, aes(x=moe_speak_only_english_1864/estimate_speak_only_english_1864)) + geom_histogram()
 
 ## educational attainment -----------------------
 
@@ -109,6 +152,8 @@ setDT(education)
 education[, hs_or_equiv := estimate_highschool + estimate_highschool_equiv]
 education[, perc_hs := hs_or_equiv/estimate_total_pop_25]
 education[, perc_bach := estimate_bachelors/estimate_total_pop_25]
+education <- education[, .(year, GEOID, perc_hs, perc_bach)]
+
 saveRDS(education, 'data/covariates/education.RDS')
 
 
@@ -132,20 +177,19 @@ nativity <- nativity %>% pivot_wider(names_from = variable, values_from = c('est
 setDT(nativity)
 nativity[, perc_native := estimate_tot_native/estimate_total_pop]
 nativity[, perc_foreign := estimate_tot_foreign/estimate_total_pop]
+nativity <- nativity[, .(year, GEOID, perc_native, perc_foreign)]
 
-saveRDS(nativity, 'data/covariates/nativity.RDS')
+saveRDS(nativity, 'data/covariates/tract/nativity.RDS')
 
 # housing tenure & vehicle availability ---------
 
-ten_veh <- map_dfr(
+housing <- map_dfr(
   years,
   ~ get_acs(
     geography = "block group",
     variables = c(total_pop = "B25044_001",
                   total_own = "B25044_002",
-                  own_no_veh = "B25044_003",
-                  total_rent = "B25044_009",
-                  rent_no_veh = "B25044_010"),
+                  total_rent = "B25044_009"),
     state = "MN",
     county = counties,
     year = .x,
@@ -154,15 +198,51 @@ ten_veh <- map_dfr(
   .id = "year"
 )
 
-ten_veh <- ten_veh %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(ten_veh)
-ten_veh[, perc_owner_occ := estimate_total_own/estimate_total_pop]
-ten_veh[, perc_rent := estimate_total_rent/estimate_total_pop]
-ten_veh[, tot_no_veh := estimate_own_no_veh + estimate_rent_no_veh]
-ten_veh[, perc_no_veh := tot_no_veh/estimate_total_pop]
+housing <- housing %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
+setDT(housing)
+housing[, perc_owner_occ := estimate_total_own/estimate_total_pop]
+housing[, perc_rent := estimate_total_rent/estimate_total_pop]
+housing <- housing[, .(year, GEOID, perc_owner_occ, perc_rent)]
 
-saveRDS(ten_veh, 'data/covariates/housing-and-vehicles.RDS')
+saveRDS(housing, 'data/covariates/housing.RDS')
 
+# avg number of vehicles per household ----------
+
+vehicles <- map_dfr(
+  years, 
+  ~ get_acs(
+    geography = "block group",
+    table = "B25044",
+    summary_var = "B25044_001",  # should have used this throughout!
+    state = "MN",
+    county = counties,
+    year = .x,
+    survey = "acs5"
+  ),
+  .id = "year"
+)
+
+vehicles <- vehicles %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
+setDT(vehicles)
+
+zero <- paste0("estimate_B25044_", c('003', '010'))
+one <- paste0("estimate_B25044_", c('004', '011'))
+two <- paste0("estimate_B25044_", c('005', '012'))
+three <- paste0("estimate_B25044_", c('006', '013'))
+four <- paste0("estimate_B25044_", c('007', '014'))
+five <- paste0("estimate_B25044_", c('008', '015'))
+
+vehicles$zero <- rowSums(vehicles[, ..zero])
+vehicles$one <- rowSums(vehicles[, ..one])
+vehicles$two <- rowSums(vehicles[, ..two])
+vehicles$three <- rowSums(vehicles[, ..three])
+vehicles$four <- rowSums(vehicles[, ..four])
+vehicles$five <- rowSums(vehicles[, ..five])
+
+vehicles[, totalveh := zero*0 + one*1 + two*2 + three*3 + four*4 + five*5]
+vehicles[, avg_veh := totalveh/summary_est]
+vehicles <- vehicles[, .(year, GEOID, summary_est, zero, one, two, three, four, five, totalveh, avg_veh)]
+saveRDS(vehicles, "data/covariates/vehicles.RDS")
 
 # acs employment data ---------------------------
 
@@ -171,6 +251,7 @@ acs_emp <- map_dfr(
   ~ get_acs(
     geography = "tract",
     variables = c(transit_commute = "B08006_008",
+                  worked_from_home = "B08006_017",
                   total_commute = "B08006_001"),
     state = "MN",
     county = counties,
@@ -183,65 +264,20 @@ acs_emp <- map_dfr(
 acs_emp <- acs_emp %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
 setDT(acs_emp)
 acs_emp[, perc_transit_comm := estimate_transit_commute/estimate_total_commute]
+acs_emp[, perc_wfh := estimate_worked_from_home/estimate_total_commute]
+acs_emp <- acs_emp[, .(year, GEOID, perc_transit_comm, perc_wfh)]
 
-saveRDS(acs_emp, 'data/covariates/acs-emp.RDS')
+saveRDS(acs_emp, 'data/covariates/tract/acs-emp.RDS')
 
-## late additions -----------------------------------------
+## unemployment? --------------------------------
+# only available at tract level
 
-shortyears <- c(2017)
-late <- map_dfr(
-  shortyears,
-  ~ get_acs(
-    geography = "block group",
-    variables = c(work_from_home = "B08301_021", 
-                  total_children = "B09002_001", 
-                  pub_snap_total_pop = "B19058_001", 
-                  pub_snap_recieved = "B19058_002", 
-                  emp_total_pop = "B23025_001", 
-                  in_labor_force = "B23025_002", 
-                  vacancy_total_units = "B25002_001", 
-                  vacancies = "B25002_003",
-                  structures_total = "B25034_001", 
-                  structures_2000 = "B25034_004",
-                  structures_2010 = "B25034_003", 
-                  structures_2014 = "B25034_002", 
-                  med_gross_rent = "B25064_001"
-                  ),
-    state = "MN",
-    county = counties,
-    year = .x,
-    survey = "acs5"
-  ),
-  .id = "year"
-)
-
-saveRDS(late, 'data/covariates/unclean_late.RDS')
-
-late <- late %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-
-late <- late %>%
-  select(-c(estimate_pub_snap_total_pop, estimate_pub_snap_recieved, moe_pub_snap_total_pop, moe_pub_snap_recieved))
-
-setDT(late)
-late[, (which(names(late)  %like% "moe")) := NULL]
-late[, perc_in_labor_force := estimate_in_labor_force/estimate_emp_total_pop]
-late[, perc_struct_2010 := (estimate_structures_2010 + estimate_structures_2014)/estimate_structures_total]
-late[, perc_vacant := estimate_vacancies/estimate_vacancy_total_units]
-late[, total_children := estimate_total_children]
-late[, med_gross_rent := estimate_med_gross_rent]
-late[, perc_work_from_home := estimate_work_from_home/estimate_emp_total_pop]
-
-latevars <- late[, c('GEOID', 'perc_in_labor_force', 'perc_struct_2010', 'perc_vacant', 'total_children', 
-                     'med_gross_rent', 'perc_work_from_home')]
-saveRDS(latevars, 'data/covariates/misc_late.RDS')
-
-late_tract <- map_dfr(
-  shortyears,
+unemp <- map_dfr(
+  years,
   ~ get_acs(
     geography = "tract",
-    variables = c(pub_snap_total_pop = "B19058_001", 
-                  pub_snap_recieved = "B19058_002"
-    ),
+    table = "B21005",
+    summary_var = "B21005_001",
     state = "MN",
     county = counties,
     year = .x,
@@ -250,14 +286,13 @@ late_tract <- map_dfr(
   .id = "year"
 )
 
-late_tract <- late_tract %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(late_tract)
-late_tract[, perc_recieve_benefits := estimate_pub_snap_recieved/estimate_pub_snap_total_pop]
-saveRDS(late_tract, 'data/covariates/pub_benefits_tract.RDS')
-
-
-## age cohorts --------------------------------------------
-
+unemp <- unemp %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
+setDT(unemp)
+unemployed <- paste0("estimate_B21005_", c('006', '011', '017', '022', '028', '033'))
+unemp$unemployed <- rowSums(unemp[, ..unemployed])
+unemp[, unemprate := unemployed/summary_est]
+unemp <- unemp[, .(year, GEOID, summary_est, unemployed, unemprate)]
+saveRDS(unemp, "data/covariates/tract/unemp.RDS")
 
 ## employment data ----------------------------------------
 
@@ -265,40 +300,34 @@ saveRDS(late_tract, 'data/covariates/pub_benefits_tract.RDS')
 # https://github.com/ravenmcknight/LODES-analysis/blob/master/get-ts-data.R
 # add year restrictions here
 
-od_jobs <- readRDS('/Users/raven/Documents/projects/LODES-analysis/data/od_jobs.RDS')
-setDT(od_jobs)
-od_jobs <- od_jobs[year %in% years]
-saveRDS(od_jobs, 'data/covariates/od_jobs.RDS')
-
 tot_jobs <- readRDS('/Users/raven/Documents/projects/LODES-analysis/data/tot_jobs.RDS')
 setDT(tot_jobs)
 tot_jobs <- tot_jobs[year %in% years]
+tot_jobs[year == 2017, year := as.character(3)]
+tot_jobs[year == 2016, year := as.character(2)]
+tot_jobs[year == 2015, year := as.character(1)]
+setnames(tot_jobs, "w_bg", "GEOID")
 saveRDS(tot_jobs, 'data/covariates/tot_jobs.RDS')
 
-# maybe better is rac data
-
-
-
-# and maybe even better is wac...
+# wac <- this is about who works in this bg
 wac_urls <- c('https://lehd.ces.census.gov/data/lodes/LODES7/mn/wac/mn_wac_S000_JT00_2017.csv.gz',
               'https://lehd.ces.census.gov/data/lodes/LODES7/mn/wac/mn_wac_S000_JT00_2016.csv.gz',
               'https://lehd.ces.census.gov/data/lodes/LODES7/mn/wac/mn_wac_S000_JT00_2015.csv.gz')
 
 for(i in 1:length(years)){
-  download.file(wac_urls[i], paste0('data/covariates/wac/mn_wac', years[i], '.csv.gz'))
+  download.file(wac_urls[i], paste0('data/covariates/wac/', years[i], '.csv.gz'))
 }
 
 wac_files <- list.files(path = 'data/covariates/wac/')
 l <- lapply(paste0('data/covariates/wac/', wac_files), fread)
 
-l[[1]]$year <- 2017
-l[[2]]$year <- 2016
-l[[3]]$year <- 2015
+l[[1]]$year <- 3
+l[[2]]$year <- 2
+l[[3]]$year <- 1
 
-# this whole section could be cleaned up considerably
+# this whole section should be cleaned up considerably
 
 # aggregate blocks to bgs
-
 for(i in 1:3){
   l[[i]][, GEOID := substr(w_geocode, 1, 12)]
 }
@@ -330,6 +359,11 @@ wac[, w_perc_jobs_men := w_male/w_total_jobs_here]
 wac[, w_perc_jobs_no_college := w_hs/w_total_jobs_here]
 wac[, w_perc_jobs_less40 := (w_wage_1250 + w_wage_1250_3333)/w_total_jobs_here]
 wac[, w_perc_jobs_age_less30 := w_age_29/w_total_jobs_here]
+wac[, year := as.character(year)]
 
-saveRDS(wac, 'data/covariates/wac/all-wac.RDS')
+# lots of these could be interesting but just taking a few
+wac <- wac[, .(GEOID, year, w_total_jobs_here, w_perc_jobs_white, w_perc_jobs_men, 
+               w_perc_jobs_no_college, w_perc_jobs_less40, w_perc_jobs_age_less30)]
+
+saveRDS(wac, 'data/covariates/all_wac.RDS')
 

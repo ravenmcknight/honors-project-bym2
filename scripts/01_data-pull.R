@@ -8,7 +8,7 @@
 
 ## packages -----------------------------------------------
 
-# these lines make sure any user has all the necessary packages!
+# these lines make sure any user has all the necessary packages
 packages <- c('data.table', 'DBI', 'odbc', 'lubridate')
 
 miss_pkgs <- packages[!packages %in% installed.packages()[,1]]

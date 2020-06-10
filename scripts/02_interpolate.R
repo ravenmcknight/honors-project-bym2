@@ -131,11 +131,9 @@ fillAPC <- apc[, .(board = sample(board, 1), alight = sample(alight, 1)), .(PICK
 # merge with run trips to get filled observations - mark as interpolated
 filledAPC <- fillAPC[noAPC_tripStop[, .(date_key, PICK_START_DATE, service_id, line_id, line_direction, trip_number, StopID, interpolated = TRUE)], on = .(PICK_START_DATE, service_id, line_id, trip_number, StopID)]
 
-nrow(filledAPC[is.na(board)])/nrow(filledAPC) # unclear why so many are still missing?
-# I'm not sure if this is my error, or if those trips were unusual and actually shouldn't have a match
-# I'm guessing it's the latter and will likely drop na values
+nrow(filledAPC[is.na(board)])/nrow(filledAPC) 
 
-# either way, add back to all trips
+# add back to all trips
 apcboth <- rbindlist(list(apc[, .(date_key, line_id, line_direction, service_id, site_id, board, alight, interpolated = FALSE)], filledAPC[, .(date_key, line_id, line_direction, service_id, site_id = StopID, board, alight, interpolated)]))
 
 # save all data

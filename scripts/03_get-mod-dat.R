@@ -1,5 +1,6 @@
 ## Goal: clean Metro Transit data from 01 and 02 into usable modeling data
 
+## packages -----------------------------------------------
 packages <- c('data.table', 'tigris', 'ggplot2', 'dplyr', 'rgdal', 'sf', 'lubridate')
 
 miss_pkgs <- packages[!packages %in% installed.packages()[,1]]
@@ -15,13 +16,14 @@ rm(miss_pkgs, packages)
 options(tigris_use_cache = TRUE)
 options(tigris_class = 'sf')
 
+## data ---------------------------------------------------
 # Read "raw" data, from "gap-fill.R" script
 apc <- readRDS('data/metro-transit/apc-interpolated.RDS')
 setDT(apc)
 
 apc[, site_id := as.character(site_id)]
 
-# assign stops to block groups ------------------
+# assign stops to block groups ----------------------------
 url <- 'ftp://ftp.gisdata.mn.gov/pub/gdrs/data/pub/us_mn_state_metc/trans_transit_stops/shp_trans_transit_stops.zip'
 loc <- file.path(tempdir(), 'stops.zip')
 download.file(url, loc)
@@ -38,25 +40,26 @@ bgs <- block_groups('MN', counties, year = 2016)
 bgs <- st_transform(bgs, 4326)
 
 apc[, site_id := as.character(site_id)]
-# apc_loc <- left_join(stops, apc) # dplyr joins are usually easier with sf objects
-# rm(apc) # just for space
-# 
-# # intersect stops and block groups
-# apc_bg <- st_join(apc_loc, bgs, st_intersects)
-# setDT(apc_bg)
-# 
-# # count bus stops
-# bc <- apc_bg[rail == 0, .(count_bus_stops = length(unique(site_id))), by = 'GEOID']
-# rc <- apc_bg[rail == 1, .(count_rail_stops = length(unique(site_id))), by = 'GEOID']
-# 
-# # save stops to block groups
-# names(apc_bg)
-# stop_to_bg <- apc_bg[, c('site_id', 'GEOID')]
-# 
-# stop_to_bg <- unique(stop_to_bg)
-# saveRDS(stop_to_bg, 'data/metro-transit/stops_to_bgs.RDS')
+apc[, year := year(ymd(date_key))]
 
-stop_to_bg <- readRDS('data/metro-transit/stops_to_bgs.RDS')
+# this step takes a while, save "stop_to_bg" and don't rerun
+apc_loc <- left_join(stops, apc) # dplyr joins are usually easier with sf objects
+rm(apc) # just for space
+
+# intersect stops and block groups
+apc_bg <- st_join(apc_loc, bgs, st_intersects)
+setDT(apc_bg)
+
+# count bus stops
+bc <- apc_bg[rail == 0, .(count_bus_stops = length(unique(site_id))), by = 'GEOID']
+rc <- apc_bg[rail == 1, .(count_rail_stops = length(unique(site_id))), by = 'GEOID']
+
+# save stops to block groups
+names(apc_bg)
+stop_to_bg <- apc_bg[, c('site_id', 'GEOID')]
+
+stop_to_bg <- unique(stop_to_bg)
+#saveRDS(stop_to_bg, 'data/metro-transit/stops_to_bgs.RDS')
 
 apc <- stop_to_bg[apc, on = 'site_id']
 
@@ -71,28 +74,51 @@ apc <- apc[line_id != 902 & line_id != 901]
 # exclude things outside of 7 county
 apc <- apc[!is.na(GEOID)]
 
-apc_ag <- apc[year(ymd(date_key)) == 2017, .(year_boards = sum(board, na.rm = T), year_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
-                  num_routes = length(unique(line_id)), year_stops = .N), keyby = .(GEOID)]
 
-apc_ag[, year_activity := year_boards + year_alights, keyby = .(GEOID)]
+## get aggregations of data -------------------------------
+# a little bit overkill but this takes a while to process so do all at once
 
-saveRDS(apc_ag, 'data/modeling-dat/basic_mod_dat_ann17.RDS')
+# total annual by bg
+apc_annual_bg <- apc[, .(year_boards = sum(board, na.rm = T), year_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                  num_routes = length(unique(line_id)), year_stops = .N), keyby = .(year, GEOID)]
 
+saveRDS(apc_annual_bg, 'data/aggregations/apc_annual_bg.RDS')
 
-# apc interp to daily by stop
-apc <- readRDS('data/metro-transit/apc-interpolated.RDS')
-setDT(apc)
-apc17 <- apc[year(ymd(date_key)) == 2017]
+# total annual by stop
+apc_annual_stop <- apc[, .(year_boards = sum(board, na.rm = T), year_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                           num_routes = length(unique(line_id)), year_stops = .N), keyby = .(year, site_id)]
 
-, apc_day_stop <- apc[year(ymd(date_key)) == 2017, .(boards = sum(board, na.rm = T), alights = sum(alight, na.rm = TRUE), 
-                        num_interp = sum(interpolated)), keyby = .(date_key, site_id)]
-saveRDS(apc_day, "data/metro-transit/daily_stop_apc17.RDS")
+saveRDS(apc_annual_bg, 'data/aggregations/apc_annual_stop.RDS')
 
+# daily across entire region
+apc_daily <- apc[, .(daily_boards = sum(board, na.rm = T), daily_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                     num_routes = length(unique(line_id)), daily_stops = .N), keyby = .(date_key)]
 
-# daily by region
-apc_day <- apc[year(ymd(date_key)) == 2017, .(boards = sum(board, na.rm = T), alights = sum(alight, na.rm = TRUE), 
-                   num_interp = sum(interpolated)), keyby = .(date_key)]
-saveRDS(apc_day, "data/metro-transit/daily_apc17.RDS")
+saveRDS(apc_daily, 'data/aggregations/apc_daily.RDS')
 
+# daily by bg
+apc_daily_bg <- apc[, .(daily_boards = sum(board, na.rm = T), daily_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                     num_routes = length(unique(line_id)), daily_stops = .N), keyby = .(date_key, GEOID)]
 
+saveRDS(apc_daily_bg, 'data/aggregations/apc_daily_bg.RDS')
+
+# slightly more practical average
+apc_avg_daily_bg <- apc_daily_bg[, .(daily_boards = mean(daily_boards, na.rm = T), daily_alights = mean(daily_alights, na.rm = T), 
+                                     num_interpolated = mean(num_interpolated, na.rm = T), num_routes = mean(num_routes, na.rm = T), 
+                                     daily_stops = mean(daily_stops, na.rm = T)), keyby = .(year, GEOID)]
+
+saveRDS(apc_avg_daily_bg, 'data/aggregations/apc_avg_daily_bg.RDS')
+
+# daily by stop
+apc_daily_stop <- apc[, .(daily_boards = sum(board, na.rm = T), daily_alights = sum(alight, na.rm = T), num_interpolated = sum(interpolated), 
+                        num_routes = length(unique(line_id)), daily_stops = .N), keyby = .(date_key, site_id)]
+
+saveRDS(apc_daily_stop, 'data/aggregations/apc_daily_stop.RDS')
+
+# slightly more practical average
+apc_avg_daily_stop <- apc_daily_stop[, .(daily_boards = mean(daily_boards, na.rm = T), daily_alights = mean(daily_alights, na.rm = T), 
+                                     num_interpolated = mean(num_interpolated, na.rm = T), num_routes = mean(num_routes, na.rm = T), 
+                                     daily_stops = mean(daily_stops, na.rm = T)), keyby = .(year, site_id)]
+
+saveRDS(apc_avg_daily_stop, 'data/aggregations/apc_avg_daily_stop.RDS')
 

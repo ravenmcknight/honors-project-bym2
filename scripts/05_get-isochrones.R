@@ -1,12 +1,19 @@
-library(readr)
-library(sf)
-library(tigris)
-library(data.table)
-library(otptools)
-library(dplyr)
-library(ggplot2)
+## goal: get area of walk isochrones for each bg
 
-options(tigris_class = "sf")
+## packages -------------------------------------
+packages <- c('readr', 'sf', 'tigris', 'data.table', 'otptools', 'dplyr', 'ggplot2')
+
+miss_pkgs <- packages[!packages %in% installed.packages()[,1]]
+
+if(length(miss_pkgs) > 0){
+  install.packages(miss_pkgs)
+}
+
+invisible(lapply(packages, library, character.only = TRUE))
+
+rm(miss_pkgs, packages)
+
+options(tigris_class = 'sf')
 
 # first, download population-weighted centroids
 url <- "https://www2.census.gov/geo/docs/reference/cenpop2010/blkgrp/CenPop2010_Mean_BG27.txt"
@@ -38,8 +45,14 @@ setDT(isos)
 isos[, area := st_area(geometry)]
 isos[, max_area := 2.01*10^6] # area of perfect r=800m circle
 isos[, walkability := area/max_area] 
+isos[, year  := as.character(3)]
 
 bg_isos <- isos[, .(area, max_area, walkability, id)]
 setnames(bg_isos, "id", 'GEOID')
+
+bg_isos[, walkability := as.numeric(area)]
+bg_isos <- bg_isos[, .(walkability, GEOID, year)]
+
 saveRDS(bg_isos, 'data/covariates/walkability.RDS')
+
 

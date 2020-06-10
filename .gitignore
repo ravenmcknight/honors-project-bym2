@@ -5,5 +5,4 @@ data/
 .Rhistory
 .Rdata
 fits/
-*.html
-final-fits/
+

@@ -1,1 +1,0 @@
-This is a folder of scripts I'll run on AWS (mostly Stan models so I can free up my laptop while they run). 

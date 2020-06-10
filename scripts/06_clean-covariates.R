@@ -1,5 +1,6 @@
-## Goal: get 2017 covariate data
+## Goal: get covariate data
 
+## packages -----------------------------------------------
 packages <- c('data.table', 'tigris', 'ggplot2', 'dplyr', 'rgdal', 'sf')
 
 miss_pkgs <- packages[!packages %in% installed.packages()[,1]]
@@ -14,90 +15,84 @@ rm(miss_pkgs, packages)
 
 options(tigris_class = 'sf')
 
-# add basic acs
-acs <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/basic_acs.RDS')
-setDT(acs)
-acs <- acs[year == 3]
+## read all covariates into df together -------------------
+# this is very imperfect
 
-educ <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/education.RDS')
-house_veh <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/housing-and-vehicles.RDS')
-language <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/language.RDS')
-nativity <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/nativity.RDS')
-wac <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/wac/all-wac.RDS')
-acs_emp <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/acs-emp.RDS')
-walk <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/walkability.RDS')
-pub <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/pub_benefits_tract.RDS')
-late <- readRDS('/Users/raven/Documents/honors/honors-project/data/covariates/misc_late.RDS')
-setDT(educ)
-setDT(house_veh)
-setDT(language)
-setDT(nativity)
-setDT(wac)
-setDT(acs_emp)
-setDT(pub)
-setDT(late)
+file_list <- paste0("data/covariates/", list.files(path = "data/covariates/", pattern = ".RDS"))
 
-acs[, year := NULL]
-acs[, NAME := NULL]
+for (file in file_list){
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- readRDS(file)
+  }
+  
+  # if the merged dataset does exist, merge to it
+  if (exists("dataset")){
+    temp_dataset <- readRDS(file)
+    dataset <- temp_dataset[dataset, on = .(year, GEOID)]
+    rm(temp_dataset)
+  }
+  
+}
 
-mod_dat <- merge(acs, educ[year == 3, c('perc_hs', 'perc_bach', 'GEOID')], by = 'GEOID', all.x = TRUE)
-mod_dat <- merge(mod_dat, house_veh[year == 3, c('GEOID', 'perc_rent', 'perc_owner_occ', 'perc_no_veh')], by = 'GEOID', all.x = TRUE)
-mod_dat <- merge(mod_dat, language[year == 3, c('GEOID', 'perc_english_only')], by = 'GEOID', all = TRUE)
+setDT(dataset)
 
-setnames(nativity, 'GEOID', 'tract_GEOID')
-mod_dat[, tract_GEOID := substr(GEOID, 1, 11)]
+# remove duplicates
+dataset[, `:=` (i.summary_est = NULL, i.summary_est.1 = NULL, i.genz = NULL, 
+                i.millenial = NULL, i.genx = NULL, i.boomer = NULL) ]
 
-mod_dat <- merge(mod_dat, nativity[year == 3, c('tract_GEOID', 'perc_native', 'perc_foreign')], by = 'tract_GEOID', all.x = TRUE)
+dataset[, tract_GEOID := stringr::str_sub(GEOID, end = -2)]
 
-wac <- wac[year == 2017]
-wac <- wac[, c("w_total_jobs_here", "GEOID", "w_perc_jobs_white", "w_perc_jobs_men", "w_perc_jobs_no_college", 
-                "w_perc_jobs_less40", "w_perc_jobs_age_less30")]
- 
-mod_dat <- merge(mod_dat, wac, by = 'GEOID', all.x = TRUE)
+# only available at tract level
+tract_list <- paste0("data/covariates/tract/", list.files(path = "data/covariates/tract/", pattern = ".RDS"))
 
-acs_emp <- acs_emp[year == 3, c("GEOID", "perc_transit_comm")]
-setnames(acs_emp, "GEOID", "tract_GEOID")
-mod_dat <- merge(mod_dat, acs_emp, by = 'tract_GEOID', all.x = TRUE)
+for (file in tract_list){
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("tdataset")){
+    tdataset <- readRDS(file)
+  }
+  
+  # if the merged dataset does exist, merge to it
+  if (exists("tdataset")){
+    temp_tdataset <- readRDS(file)
+    tdataset <- temp_tdataset[tdataset, on = .(year, GEOID)]
+    rm(temp_tdataset)
+  }
+  
+}
 
-mod_dat <- merge(mod_dat, walk[, c('GEOID', 'area')], by = 'GEOID', all.x = TRUE)
-mod_dat[, walkability := as.numeric(area)]
-setnames(mod_dat, "area", "walk_area")
+setDT(tdataset)
+tdataset[, `:=` (i.perc_transit_comm = NULL, i.perc_wfh = NULL)]
+setnames(tdataset, "GEOID", "tract_GEOID")
+
+cov <- tdataset[dataset, on = .(tract_GEOID, year)]
+
+## geographic info ------------------------------
 
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
 bgs <- block_groups("MN", counties, 2016)
 
-mod_dat <- left_join(bgs, mod_dat, on = 'GEOID')
-setDT(mod_dat)
+cov <- left_join(bgs, cov, on = 'GEOID')
+setDT(cov)
 
-mod_dat[, sqkm := ALAND/1000000]
-mod_dat[, emp_density := w_total_jobs_here/sqkm]
-mod_dat[, pop_density := estimate_tot_pop/sqkm]
-mod_dat[, c('STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NAMELSAD', 'MTFCC', 'FUNCSTAT', 
+cov[, sqkm := ALAND/1000000]
+cov[, emp_density := w_total_jobs_here/sqkm]
+cov[, pop_density := estimate_tot_pop/sqkm]
+cov[, c('STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NAMELSAD', 'MTFCC', 'FUNCSTAT', 
             'ALAND', 'AWATER', 'INTPTLAT', 'INTPTLON', 'geometry') := NULL]
 
-setnames(pub, 'GEOID', 'tract_GEOID')
-mod_dat <- merge(mod_dat, pub[, c('perc_recieve_benefits', 'tract_GEOID')], by = 'tract_GEOID', all.x = TRUE)
-
-mod_dat <- merge(mod_dat, late, by = 'GEOID', all.x = TRUE)
-
 # save un-standardized
-saveRDS(mod_dat, 'data/modeling-dat/ag-2017-dat.RDS')
+saveRDS(cov, 'data/covariates/cleaned/all_covariates.RDS')
 
 ## standardize ------------------------
 
-small_dat <- mod_dat[, c("GEOID", "estimate_median_hh_income", "perc_only_white", "walk_area",
-                         "perc_hs", "perc_bach", "perc_rent", "perc_no_veh", "perc_english_only", "perc_foreign",
-                         "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_perc_jobs_men",
-                         "w_perc_jobs_no_college", "w_perc_jobs_less40", "w_perc_jobs_age_less30", 
-                         "sqkm", "estimate_tot_pop", "estimate_median_age", "perc_transit_comm", "pop_density", 
-                         "perc_in_labor_force", "perc_struct_2010", "perc_vacant", "total_children", 
-                         "med_gross_rent", "perc_work_from_home", "perc_recieve_benefits")]
-setDT(small_dat)
-
-
 # scale
-scaled_dat <- lapply(small_dat[, -c('GEOID')], scale)
-scaled_dat$GEOID <- small_dat$GEOID
+scaled_dat <- lapply(cov[, -c('GEOID', 'year', 'tract_GEOID')], scale)
+scaled_dat$GEOID <- cov$GEOID
+scaled_dat$year <- cov$year
+scaled_dat$tract_GEOID <- cov$tract_GEOID
 scaled_dat <- as.data.table(scaled_dat)
 
-saveRDS(scaled_dat, 'data/modeling-dat/ag_2017_scaled_mod.RDS')
+saveRDS(scaled_dat, 'data/covariates/cleaned/all_covariates_scaled.RDS')
