@@ -84,7 +84,7 @@ bgs <- block_groups("MN", counties, 2017)
 bg_dat <- left_join(mod_dat, bgs, on = 'GEOID')
 bg_dat <- st_as_sf(bg_dat)
 neighborhood <- poly2nb(bg_dat)
-source("nb_data_funs.R")
+source("functions/nb_data_funs.R")
 
 nbs <- nb2graph(neighborhood)
 N2 <- nbs$N
