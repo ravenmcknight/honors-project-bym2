@@ -13,11 +13,12 @@ invisible(lapply(packages, library, character.only = TRUE))
 
 rm(miss_pkgs, packages)
 
+
 options(tigris_class = 'sf')
 
 # first, download population-weighted centroids
 url <- "https://www2.census.gov/geo/docs/reference/cenpop2010/blkgrp/CenPop2010_Mean_BG27.txt"
-loc <- file.path("/Users/mcknigri/Documents/honors/honors-project/data/covariates", 'centrs.csv')
+loc <- file.path("/Users/raven/Documents/honors/old-honors/data/covariates", 'centrs.csv')
 download.file(url, loc)
 
 centrs <- read_csv('data/covariates/centrs.csv')
@@ -47,7 +48,7 @@ isos[, max_area := 2.01*10^6] # area of perfect r=800m circle
 isos[, walkability := area/max_area] 
 isos[, year  := as.character(3)]
 
-bg_isos <- isos[, .(area, max_area, walkability, id)]
+bg_isos <- isos[, .(area, max_area, walkability, id, year)]
 setnames(bg_isos, "id", 'GEOID')
 
 bg_isos[, walkability := as.numeric(area)]
