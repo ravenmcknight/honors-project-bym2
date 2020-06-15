@@ -46,7 +46,7 @@ setDT(isos)
 isos[, area := st_area(geometry)]
 isos[, max_area := 2.01*10^6] # area of perfect r=800m circle
 isos[, walkability := area/max_area] 
-isos[, year  := as.character(3)]
+isos[, year  := as.character(4)]
 
 bg_isos <- isos[, .(area, max_area, walkability, id, year)]
 setnames(bg_isos, "id", 'GEOID')

@@ -33,7 +33,17 @@ ridership <- ridership[, .(daily_boards = mean(daily_boards, na.rm = T),
 
 cov <- readRDS('data/covariates/cleaned/all_covariates_scaled_ind.RDS')
 setDT(cov)
-cov <- cov[year == "3"]
+
+# need year == '3' for lehd and year == '4' for acs
+late <- c("workers", "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_perc_jobs_men",
+          "w_perc_jobs_no_college", "w_perc_jobs_less40", "w_perc_jobs_age_less30", "GEOID")
+late2 <- c("workers", "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_perc_jobs_men",
+          "w_perc_jobs_no_college", "w_perc_jobs_less40", "w_perc_jobs_age_less30")
+
+emp <- cov[year == "3", ..late]
+notemp <- cov[year == "4", !..late2]
+
+cov <- emp[notemp, on = .(GEOID)]
 
 mod_dat <- cov[ridership, on = .(GEOID)]
 

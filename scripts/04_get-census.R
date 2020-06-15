@@ -1,4 +1,4 @@
-# Goal: get census variables of interest, 2015-2017
+# Goal: get census variables of interest, 2015-2018
 # I'm sure there are more refined ways to do this 
 
 ## packages -----------------------------------------------
@@ -31,7 +31,7 @@ counties <- c('Anoka', 'Carver', 'Dakota', 'Hennepin', 'Ramsey', 'Scott', 'Washi
 bgs <- block_groups("MN", counties, 2016)
 
 # 2018 acs not out yet
-years <- list(2015, 2016, 2017)
+years <- list(2015, 2016, 2017, 2018)
 
 ## basics ---------------------------------------
 basics <- map_dfr(
@@ -297,6 +297,8 @@ saveRDS(unemp, "data/covariates/tract/unemp.RDS")
 
 ## employment data ----------------------------------------
 
+# this data is still only available thru 2017
+
 # i'll use the employment data i cleaned here:
 # https://github.com/ravenmcknight/LODES-analysis/blob/master/get-ts-data.R
 # add year restrictions here
@@ -325,6 +327,7 @@ l <- lapply(paste0('data/covariates/wac/', wac_files), fread)
 l[[1]]$year <- 3
 l[[2]]$year <- 2
 l[[3]]$year <- 1
+
 
 # this whole section should be cleaned up considerably
 
