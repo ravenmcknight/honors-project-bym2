@@ -31,7 +31,7 @@ ridership <- ridership[, .(daily_boards = mean(daily_boards, na.rm = T),
                            daily_stops = mean(daily_stops, na.rm = T)), keyby = .(GEOID)]
 
 
-cov <- readRDS('data/covariates/cleaned/all_covariates_scaled.RDS')
+cov <- readRDS('data/covariates/cleaned/all_covariates_scaled_ind.RDS')
 setDT(cov)
 cov <- cov[year == "3"]
 

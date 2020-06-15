@@ -84,3 +84,5 @@ legend_titles <- c("rate", "percent", "percent", "percent", "area", "average", r
 for(i in 1:length(map_titles)){
   makeMap(sfdat, names(tomap)[i], map_titles[i], legend_titles[i])
 }
+
+## something a little different for indicators
