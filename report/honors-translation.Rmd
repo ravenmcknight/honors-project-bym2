@@ -43,46 +43,90 @@ Between these two types of change between models, spatial models can show entire
 
 ### Population Density
 
+![](/Users/raven/Documents/honors/honors-project/img/map/log_pop_density.png){#id .class width=5.75in height=5.11in}
+
+
+
+
 ### Renters
 
-### Median Household Income -> income brackets?
+![](/Users/raven/Documents/honors/honors-project/img/map/perc_rent.png){#id .class width=5.75in height=5.11in}
+
+
+### Median Household Income 
+
+![](/Users/raven/Documents/honors/honors-project/img/map/estimate_median_hh_income.png){#id .class width=5.75in height=5.11in}
+
 
 ### Employment Density
 
-### Median Age -> age cohort
+![](/Users/raven/Documents/honors/honors-project/img/map/log_emp_dens.png){#id .class width=5.75in height=5.11in}
+
+
+### Age Cohorts
 
 #### Gen Z / Youth (Age 0-25)
 
+![](/Users/raven/Documents/honors/honors-project/img/map/genz.png){#id .class width=5.75in height=5.11in}
+
+
 #### Millennials (Age 26-40)
+
+![](/Users/raven/Documents/honors/honors-project/img/map/millenial.png){#id .class width=5.75in height=5.11in}
+
 
 #### Gen X (Age 41-55)
 
+![](/Users/raven/Documents/honors/honors-project/img/map/genx.png){#id .class width=5.75in height=5.11in}
+
+
 #### Baby Boomers (Age 55+)
+
+![](/Users/raven/Documents/honors/honors-project/img/map/boomer.png){#id .class width=5.75in height=5.11in}
 
 ### White Employees
 
+![](/Users/raven/Documents/honors/honors-project/img/map/w_perc_jobs_white.png){#id .class width=5.75in height=5.11in}
+
+
 ### Young Employees
+
+![](/Users/raven/Documents/honors/honors-project/img/map/w_perc_jobs_age_less30.png){#id .class width=5.75in height=5.11in}
+
 
 ### Walkability 
 
-### Households with No Vehicle -> number of vehicles per household
+![](/Users/raven/Documents/honors/honors-project/img/map/walkability.png){#id .class width=5.75in height=5.11in}
+
+
+### Average Number of Vehicles per Household
+
+![](/Users/raven/Documents/honors/honors-project/img/map/avg_veh.png){#id .class width=5.75in height=5.11in}
+
 
 ### Work From Home
 
-### Employment Rate
-
-### Median Gross Rent
-
-### Public Benefits
+![](/Users/raven/Documents/honors/honors-project/img/map/perc_wfh.png){#id .class width=5.75in height=5.11in}
 
 
 ### College/University (Indicator)
 
+![](/Users/raven/Documents/honors/honors-project/img/map/college.png){#id .class width=5.75in height=5.11in}
+
+
 ### Light Rail (Indicator)
+
+![](/Users/raven/Documents/honors/honors-project/img/map/lightrail.png){#id .class width=5.75in height=5.11in}
+
 
 ### Airport (Indicator)
 
+![](/Users/raven/Documents/honors/honors-project/img/map/airport.png){#id .class width=5.75in height=5.11in}
+
+
 ### Hospital? (Indicator)
+
+![](/Users/raven/Documents/honors/honors-project/img/map/hospital.png){#id .class width=5.75in height=5.11in}
 
 
 # Implications and Future Work
