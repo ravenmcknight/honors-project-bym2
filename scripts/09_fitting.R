@@ -72,7 +72,7 @@ poisson_hrs <- "stan/poisson_horseshoe.stan"
 
 poisson_theta <- "stan/poisson_theta.stan"
 
-#poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 20000, verbose = T, seed = 1997)
+poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 20000, verbose = T, seed = 1997)
 #saveRDS(poisson_theta_fit, "~fits/poisson_theta.RDS")
 
 ## and the bym2!! -------------------------------
