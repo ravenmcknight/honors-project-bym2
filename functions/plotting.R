@@ -19,12 +19,12 @@ rm(miss_pkgs, packages)
 
 ## MAKE HISTOGRAMS ##
 
-makeHist <- function(dat, var, titles) {
+makeHist <- function(dat, var, titles, subtitles) {
   ggobj <- ggplot(data = dat, aes_string(x = var)) + 
     geom_histogram(fill = "#33638dff") +
     theme_light() +
     labs(title = titles,
-         subtitle = "By Census Block Group, 2017",
+         subtitle = subtitles,
          x = "value") 
   ggsave(sprintf("img/hist/%s.png", var))
 }
@@ -33,22 +33,14 @@ makeHist <- function(dat, var, titles) {
 ## MAKE MAPS ##
 # theoretically should be basically the same
 
-makeMap <- function(dat, var, titles, legend_titles) {
+makeMap <- function(dat, var, titles, legend_titles, subtitles) {
   ggobj <- ggplot(data = dat) + 
     geom_sf(aes_string(fill = var), lwd = 0) +
     theme_light() +
     labs(title = paste0(titles),
-         subtitle = "By Census Block Group, 2017", 
+         subtitle = subtitles, 
          fill = legend_titles) +
-    scale_fill_viridis_c()
+    scale_fill_viridis_c(na.value = "transparent")
   ggsave(sprintf("img/map/%s.png", var))
 }
 
-
-testvars <- c('genz', 'millenial', 'genx', 'boomer')
-testtitles <- c("Genz", "Millenial", "Genx", "Boomer")
-ltitles <- c("perc", "perc", "perc", "perc")
-
-for(i in 1:length(testtitles)){
-  makeMap(sfdat, testvars[i], testtitles[i], ltitles[i])
-}

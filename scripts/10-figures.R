@@ -22,7 +22,7 @@ options(tigris_class = "sf")
 bgs <- block_groups("MN", counties, 2016)
 
 # unscaled covariates for mapping etc
-mod <- readRDS('data/modeling-dat/mod_dat.RDS')
+mod <- readRDS('data/modeling-dat/mod_dat_unscaled.RDS')
 tohist <- mod[, .(unemprate, perc_foreign, perc_transit_comm, perc_wfh, walkability, 
                  avg_veh, perc_english_only, perc_rent, perc_hs, perc_bach, perc_no_veh,
                  estimate_median_age, estimate_median_hh_income, perc_only_white,
@@ -48,9 +48,10 @@ hist_titles <- c("Unemployment rate", "Percent foreign-born residents", "Percent
                  "Percent of jobs for employees without \ncollege degrees", "Percent of population age 0-25", 
                  "Percent of population age 26-40", "Percent of population age 41-55", "Percent of population age 55+", 
                  "Employment density", "Population density")
+subtitle <- c(rep("By Census Block Group, 2018", 14), rep("By Census Block Group, 2017", 5), rep("By Census Block Group, 2018", 6))
 
 for(i in 1:length(hist_titles)){
-  makeHist(tohist, names(tohist)[i], hist_titles[i])
+  makeHist(tohist, names(tohist)[i], hist_titles[i], subtitle[i])
 }
 
 ## maps
@@ -81,7 +82,37 @@ legend_titles <- c("rate", "percent", "percent", "percent", "area", "average", r
                    "years", "usd", rep("percent", 10), "log \ndensity", "log \ndensity")
 
 for(i in 1:length(map_titles)){
-  makeMap(sfdat, names(tomap)[i], map_titles[i], legend_titles[i])
+  makeMap(sfdat, names(tomap)[i], map_titles[i], legend_titles[i], subtitle[i])
 }
 
-## something a little different for indicators
+## INDICATORS ##
+
+sfdat2 <- dplyr::left_join(bgs, mod)
+
+ggplot(sfdat2) +
+  geom_sf(aes(fill = college), lwd = 0.1) +
+  theme_light() +
+  scale_fill_manual(values = c("gray99", "#33638dff"), labels = c("no", "yes")) +
+  labs(title = "Block groups containing a college or university")
+ggsave("img/map/college.png")
+
+ggplot(sfdat2) +
+  geom_sf(aes(fill = hospital), lwd = 0.1) +
+  theme_light() +
+  scale_fill_manual(values = c("gray99", "#33638dff"), labels = c("no", "yes")) +
+  labs(title = "Block groups containing a hospital")
+ggsave("img/map/hospital.png")
+
+ggplot(sfdat2) +
+  geom_sf(aes(fill = lightrail), lwd = 0.1) +
+  theme_light() +
+  scale_fill_manual(values = c("gray99", "#33638dff"), labels = c("no", "yes")) +
+  labs(title = "Block groups containing a rail station")
+ggsave("img/map/lightrail.png")
+
+ggplot(sfdat2) +
+  geom_sf(aes(fill = airport), lwd = 0.1) +
+  theme_light() +
+  scale_fill_manual(values = c("gray99", "#33638dff"), labels = c("no", "yes")) +
+  labs(title = "Block groups containing MSP airport")
+ggsave("img/map/airport.png")
