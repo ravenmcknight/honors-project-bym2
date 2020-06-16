@@ -1,0 +1,128 @@
+---
+title: "A Spatial Model of Bus Ridership"
+author: "Raven McKnight"
+output:
+  html_document: 
+    theme: paper
+    toc: true
+    toc_depth: 2
+    toc_float: TRUE
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Introduction
+
+
+This document explores the results of a spatial model of Metro Transit's bus ridership. The model takes the spatial dimension of bus ridership into account and incorporates demographic predictors. This builds on existing methodology by leveraging more of what we know about ridership and the region to predict where ridership will occur. 
+
+The model and analysis presented here provide insight for the *propensity* to ride across space. The analysis is conducted at the Census block group level. Predictors are from the American Community Survey (ACS) 2017 5-year estimates and 2017 Longitudinal Employee Household Dynamic Survey (LODES). Predictors are selected based on prior understnading of ridership and riders as well as actual predictive significance. The goal of using demographic predictors is to identify groups of riders and locations where they are likely to ride. 
+
+The spatially explicit component of this model accounts for correlation across space. We naturally assume that neighboring block groups will have similar levels of ridership. This model formalizes this assumption into the analysis. The spatial component adds nuance to this model and **allows us to see patterns we cannot see in a non-spatial model.** 
+
+This document outlines key findings, implications, and uses for this model of bus ridership. More extensive motivations and methods are available at the end of the document. 
+
+
+# Findings
+
+A key finding of this analysis is that spatial models allow us to see different, more nuanced patterns than we find in non-spatial models. The coefficients for some predictors change drastically when a spatial component is added. In other words, the relationship between predictors and ridership appear differently when we account for spatial correlation. Broadly, we see two types of changes: 
+
+
+**1. Decreased Coefficients: Predictors which are *less* important in a spatial model**  
+Predictors which become less important with a spatial component often capture spatial patterns themselves. Population density is a prime example of such a predictor. Population density is included in practically all models of transit ridership because we know ridership can only exist where there is a sufficient density of people. In this way, measures of density (and several other predictors described below) are included in transit models largely because they identify areas which can support transit. 
+
+**2. Increased Coefficients: Predictors which are *more* important in a spatial model**  
+The explanation for predictors which are more significant in spatial models is slightly more nuanced. These variables are inefficient at predicting ridership over a large area (ie, the 7 County Metro Area) but can be useufl in smaller areas with more things held constant. One example is median household income. We might assume that low-income areas will have higher ridership than high-income areas. However, a low income area fara way from transit will likely have lower ridership than a high-income area close to transit. The spatial model presented here allows us to see that higher median income *is* associated with lower ridership, but only when neighboring values are taken into consideration. 
+
+Between these two types of change between models, spatial models can show entirely different patterns than non-spatial counterparts. Often, the conclusions from spatial models are more consistent with our understanding of ridership (for example, median income). The following section will describe predictors used in this model including key insights and implications. 
+
+### Population Density
+
+### Renters
+
+### Median Household Income -> income brackets?
+
+### Employment Density
+
+### Median Age -> age cohort
+
+#### Gen Z / Youth (Age 0-25)
+
+#### Millennials (Age 26-40)
+
+#### Gen X (Age 41-55)
+
+#### Baby Boomers (Age 55+)
+
+### White Employees
+
+### Young Employees
+
+### Walkability 
+
+### Households with No Vehicle -> number of vehicles per household
+
+### Work From Home
+
+### Employment Rate
+
+### Median Gross Rent
+
+### Public Benefits
+
+
+### College/University (Indicator)
+
+### Light Rail (Indicator)
+
+### Airport (Indicator)
+
+### Hospital? (Indicator)
+
+
+# Implications and Future Work
+
+# Motivation
+
+- geographic smoothing
+- bus riderhsip is spatial
+- outliers
+- geography bounding issues
+
+There are several specific motivations for fitting demographic, spatial models of riderhsip. First, there is evidence to suggest that demographic predictors beyond simple population density may be informative in predicting bus ridership. Previous studies of Metro Transit's riders have shown that transit riders tend to be more diverse than the background population in terms of race, income, age, and so on (\cite{2019_transitsystem}). While it is challenging to collect demographics from individual bus riders, we can leverage demographic characteristics of the Twin Cities to predict areas of high ridership. Spatially aggregated data is the most feasible way to include such demographic information. 
+
+Including spatial information has other benefits. One primary goal of spatial modeling is to conduct geographic smoothing. In existing methods, such as the process used to determine Transit Market Areas, a model is fit and used to make predictions which are later smoothed using Geographic Information Systems (GIS). This method necessarily sacrifices some granularity in predictions. This model integrates spatial information into the structure of the model itself. This may be particularly helpful in the case of bus ridership data because boardings can only occur at existing bus stops. Geographic smoothing via spatial models can us help make predictions in block groups with no existing bus stops and avoid overfitting outliers. 
+
+Census geography itself is a limitation in modeling bus ridership. Geographies such as block groups tend to be bounded by major roadways. Unfortunately, bus routes tend to lie on those same roadways. Because of these bounds, bus stops may be split into block groups counterintuitively. For example, bus stops on either side of the same street travelling in opposite directions are often in different geographies. In these cases, boardings occur on the boundaries of block groups. There may be flaws in assigning demographics to ridership based on this method of spatial aggregation. The full implications of this limitation are not explored in this study, but some work has been done to define ``transit-specific geographies'' which could alleviate this problem (\cite{viggiano_bus_2017}). In this study, we use spatial smoothing via modeling to mitigate bounding issues. 
+
+In short, the motivations for this type of modelling are (1) to leverage more of what we know about ridership and our region and (2) to conduct geographic smoothing to handle known challenges with transit data. 
+
+
+<!-- Complex statistical models are likely more appropriate for internal use. There is still a place for simple modeles like the TMA model for communicating with the public.  -->
+
+# Methods
+
+This document provides a brief outline of the methodology used in this analysis. More detailed (and academic) descriptions of the general methodology are available in Morris et al (2019) and Riebler et al (2016). The code used to conduct this analysis and more descriptions of this specific model can be found on Github [here](). 
+
+The model used in this analysis is a *spatial Bayesian* model. Byaesian models incorporate prior information and produce distributions rather than point estimates as predictions. As described above, the spatial component is included to perform spatial smoothing. Specifically, the spatial aspect of this model accounts for spatial autocorrelation and adjusts predictions in individual block groups based on its neighboring values. 
+
+The specific model used is a Besag-York-Mollie (BYM) model. THe BYM has similar structure to a classic Bayesian Poisson regression wherein the response variable is assumed to follow a Poisson distribution determined by a set of predictors: 
+
+$$
+Y_i \sim \text{Poisson}(\beta_1 x_1 + \beta_2x_2 + \ldots + \beta_n x_n + \varepsilon_i)
+$$
+
+In this notation, $Y_i$ is the response variable (ridership) in block group $i$. Each $x$ is a predictor, each $\beta$ is the corresponding coefficient, and $\varepsilon_i$ is an error term for each block group. Above,``non-spatial model'' refers to this type of Poisson regression. The BYM replaces $\varepsilon_i$ with two terms: non-spatial errors $\theta_i$ and spatial errors $\phi_i$ such that
+
+$$
+Y_i \sim \text{Poisson}(\beta_1 x_1 + \beta_2x_2 + \ldots + \beta_n x_n + \theta_i + \phi_i)
+$$
+
+The term $\phi_i$ is determined based on an adjacency matrix $W$ which encodes the spatial relationship between block groups. This is how spatial information comes into the model and adjusts predictions based on neighboring block groups. More on this matrix and the definition of $\phi_i$ is available in the resources cited above. 
+
+The specific model used in this analysis is a reparameterization of the classic BYM model above called the BYM2. The BYM2 retains the structure of the BYM but is significantly more computationally efficient to fit. The model is fit using Stan via the `rstan` R package. 
