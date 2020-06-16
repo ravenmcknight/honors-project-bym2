@@ -58,7 +58,7 @@ poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 100, verbose = 
 
 
 ## bym2 -----------------------------------------
-bym2 <- "stan/bym2.stan"
+bym2 <- "stan/bym2_ysim.stan"
 counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
 bgs <- block_groups("MN", counties, 2017)
 
@@ -86,5 +86,5 @@ bym_dat <- list(y = y2, E = E2, x = x, K = K,
                 N = N2, node1 = node1, node2 = node2, N_edges = N_edges, scaling_factor = scaling_factor)
 
 bym_fit <- stan(bym2, data = bym_dat, iter = 100, verbose = T, seed = 1997, 
-                control = list(max_treedepth = 12))
+                control = list(max_treedepth = 12), init_r = 1/10)
 #saveRDS(bym_fit, "fits/bym2.RDS")
