@@ -73,6 +73,7 @@ ggplot() + geom_sf(data = bgs) + geom_sf(data = hosbg)
 
 ## add to covariates --------------------------------------
 
+## SCALED ##
 cov <- readRDS('data/covariates/cleaned/all_covariates_scaled.RDS')
 setDT(cov)
 cov[, `:=` (airport = 0, college = 0, hospital = 0, lightrail = 0)]
@@ -87,3 +88,19 @@ cov[, `:=` (airport = as.factor(airport), college = as.factor(college),
             hospital = as.factor(hospital), lightrail = as.factor(lightrail))] 
 
 saveRDS(cov, 'data/covariates/cleaned/all_covariates_scaled_ind.RDS')
+
+## UNSCALED ##
+cov <- readRDS('data/covariates/cleaned/all_covariates.RDS')
+setDT(cov)
+cov[, `:=` (airport = 0, college = 0, hospital = 0, lightrail = 0)]
+
+# mark indicators
+cov[GEOID %in% cubg$GEOID, college := 1]
+cov[GEOID %in% hosbg$GEOID, hospital := 1]
+cov[GEOID %in% abg, airport := 1]
+cov[GEOID %in% lrbg$GEOID, lightrail := 1]
+
+cov[, `:=` (airport = as.factor(airport), college = as.factor(college),
+            hospital = as.factor(hospital), lightrail = as.factor(lightrail))] 
+
+saveRDS(cov, 'data/covariates/cleaned/all_covariates_ind.RDS')

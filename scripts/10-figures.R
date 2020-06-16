@@ -22,9 +22,8 @@ options(tigris_class = "sf")
 bgs <- block_groups("MN", counties, 2016)
 
 # unscaled covariates for mapping etc
-cov <- readRDS("data/covariates/cleaned/all_covariates.RDS")
-cov <- cov[year == "3"]
-tohist <- cov[, .(unemprate, perc_foreign, perc_transit_comm, perc_wfh, walkability, 
+mod <- readRDS('data/modeling-dat/mod_dat.RDS')
+tohist <- mod[, .(unemprate, perc_foreign, perc_transit_comm, perc_wfh, walkability, 
                  avg_veh, perc_english_only, perc_rent, perc_hs, perc_bach, perc_no_veh,
                  estimate_median_age, estimate_median_hh_income, perc_only_white,
                  w_perc_jobs_age_less30, w_perc_jobs_white, w_perc_jobs_men, 
@@ -55,7 +54,7 @@ for(i in 1:length(hist_titles)){
 }
 
 ## maps
-tomap <- cov[perc_wfh < 0.3, .(unemprate, perc_foreign, perc_transit_comm, perc_wfh, walkability, 
+tomap <- mod[, .(unemprate, perc_foreign, perc_transit_comm, perc_wfh, walkability, 
                  avg_veh, perc_english_only, perc_rent, perc_hs, perc_bach, perc_no_veh,
                  estimate_median_age, estimate_median_hh_income, perc_only_white,
                  w_perc_jobs_age_less30, w_perc_jobs_white, w_perc_jobs_men, 
@@ -79,7 +78,7 @@ map_titles <- c("Unemployment rate", "Percent foreign-born residents", "Percent 
 
 
 legend_titles <- c("rate", "percent", "percent", "percent", "area", "average", rep("percent", 5),
-                   "years", "usd", rep("percent", 10), "density", "density")
+                   "years", "usd", rep("percent", 10), "log \ndensity", "log \ndensity")
 
 for(i in 1:length(map_titles)){
   makeMap(sfdat, names(tomap)[i], map_titles[i], legend_titles[i])

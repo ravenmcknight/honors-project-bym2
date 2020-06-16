@@ -55,3 +55,36 @@ poisson_theta <- "stan/poisson_theta.stan"
 
 poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 100, verbose = T, seed = 1997)
 saveRDS(poisson_theta_fit, "fits/mt/poisson_theta.RDS")
+
+
+## bym2 -----------------------------------------
+bym2 <- "stan/bym2.stan"
+counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
+bgs <- block_groups("MN", counties, 2017)
+
+bg_dat <- left_join(mod_dat, bgs, on = 'GEOID')
+bg_dat <- st_as_sf(bg_dat)
+neighborhood <- poly2nb(bg_dat)
+source("functions/nb_data_funs.R")
+
+nbs <- nb2graph(neighborhood)
+N2 <- nbs$N
+node1 <- nbs$node1
+node2 <- nbs$node2
+N_edges <- nbs$N_edges
+y2 <- round(bg_dat$daily_boards)
+E2 <- bg_dat$daily_stops
+
+adj_matrix <- sparseMatrix(i = node1, j = node2, x = 1, symmetric = TRUE)
+Q <- Diagonal(nbs$N, rowSums(adj_matrix)) - adj_matrix
+Q_pert <- Q + Diagonal(nbs$N) * max(diag(Q)) * sqrt(.Machine$double.eps)
+Q_inv <- inla.qinv(Q_pert, constr = list(A = matrix(1, 1, nbs$N), e = 0))
+
+scaling_factor <- exp(mean(log(diag(Q_inv))))
+
+bym_dat <- list(y = y2, E = E2, x = x, K = K, 
+                N = N2, node1 = node1, node2 = node2, N_edges = N_edges, scaling_factor = scaling_factor)
+
+bym_fit <- stan(bym2, data = bym_dat, iter = 100, verbose = T, seed = 1997, 
+                control = list(max_treedepth = 12))
+#saveRDS(bym_fit, "fits/bym2.RDS")
