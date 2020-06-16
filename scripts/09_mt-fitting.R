@@ -51,10 +51,10 @@ x <- as.matrix(ncol = K, xdat[, `:=` (college = as.numeric(college), hospital = 
 # data for basic poisson
 standat1 <- list(y = y, E = E, N = N, K = K, x = x)
 
-poisson_theta <- "stan/poisson_theta.stan"
+poisson_theta <- "stan/poisson_theta_ysim.stan"
 
-poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 100, verbose = T, seed = 1997)
-saveRDS(poisson_theta_fit, "fits/mt/poisson_theta.RDS")
+poisson_theta_fit <- stan(poisson_theta, data = standat1, iter = 100, verbose = T, seed = 1997, init_r = 1/10)
+#saveRDS(poisson_theta_fit, "fits/mt/poisson_theta.RDS")
 
 
 ## bym2 -----------------------------------------
