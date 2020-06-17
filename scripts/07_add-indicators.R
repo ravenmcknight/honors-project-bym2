@@ -1,5 +1,7 @@
 ## Goal: gather some indicator variables to try out
 
+# these were not used at all for the honors project
+
 ## packages -----------------------------------------------
 packages <- c('data.table', 'tigris', 'ggplot2', 'dplyr', 'rgdal', 'sf')
 

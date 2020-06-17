@@ -1,5 +1,7 @@
 ## Goal: fit models!
 
+# if you change 08 to use only 2017 covariates, this doc will reproduce honors results
+
 ## packages -----------------------------------------------
 packages <- c('rstan', 'dplyr', 'data.table', 'shinystan', 'ggplot2',
               'bayesplot', 'tigris', 'spdep', 'sf')

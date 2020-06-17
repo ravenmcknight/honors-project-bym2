@@ -1,6 +1,8 @@
 # Goal: get census variables of interest, 2015-2018
 # I'm sure there are more refined ways to do this 
 
+# some of these were used in honors, others collected later for metro transit use/exploration
+
 ## packages -----------------------------------------------
 
 packages <- c('data.table', 'tigris', 'tidycensus', 'purrr', 'tidyr', 'ggplot2')

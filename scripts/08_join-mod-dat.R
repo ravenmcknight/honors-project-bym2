@@ -32,6 +32,8 @@ ridership <- ridership[, .(daily_boards = mean(daily_boards, na.rm = T),
 
 
 ## SCALED ##
+
+## IMPORTANT: to reproduce honors project, use all covariates from 2017!! ##
 cov <- readRDS('data/covariates/cleaned/all_covariates_scaled_ind.RDS')
 setDT(cov)
 
