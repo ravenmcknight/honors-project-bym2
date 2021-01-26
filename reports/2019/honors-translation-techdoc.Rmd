@@ -1,0 +1,204 @@
+---
+title: "A Spatial Model of Bus Ridership: Technical Documentation - text does not match images here"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+author: Raven McKnight
+output:
+  MetroTransitr::metro_html: default
+  html_document:
+    number_sections: no
+    theme: paper
+    toc: yes
+    toc_float: yes
+---
+<style type="text/css">
+html {
+  max-width: 10.5in;
+  margin: 1.25in 0.75in;
+  font-family: "Calibri", helvetica, sans-serif;
+  font-size: 11pt;
+}
+
+body { width: 8.5in;
+       max-width: 10.5in;
+}
+</style>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(rstan)
+library(ggplot2)
+library(bayesplot)
+library(data.table)
+
+mod <- readRDS("~/Documents/honors/mt-translation/fits/mt/bym2-newdat.RDS")
+mod_dat <- readRDS("~/Documents/honors/mt-translation/data/modeling-dat/mod_dat.RDS")
+setDT(mod_dat)
+
+vars <- c("emp_density", "walkability", "perc_no_veh", "age18to34",
+          "college", "lightrail", "hospital", "airport",
+          "estimate_median_hh_income", "perc_rent",
+          "perc_only_white")
+
+mod_dat <- na.omit(mod_dat, cols = c("daily_boards", "daily_stops", vars))
+mod_dat <- mod_dat[daily_boards != 0]
+
+xdat <- mod_dat[, ..vars]
+
+y <- ceiling(mod_dat$daily_boards)
+```
+
+
+# Model Specification
+
+[This case study](https://mc-stan.org/users/documentation/case-studies/icar_stan.html) and the accompanying journal article (Morris et al, 2019) offer a really good explanation and demonstration of this model. This is a very quick summary of the model and its parameters. 
+
+This model builds upon a typical Bayesian Poisson regression: 
+
+$$
+\begin{aligned}
+Y_i & \sim \text{Poisson}(E_i\lambda_i) \\
+log(\lambda_i) & = \beta_0 + \sum_{k=1}^{18}x_{ik}\beta_k + \varepsilon_i\\
+\beta_0, \beta_k, \varepsilon_i &\sim \text{Normal}(0, 1)
+\end{aligned}
+$$
+Here, $Y_i$ is ridership (average weekday number of boardings) in block group $i$. $E_i$ is an exposure term (number of times a bus stops in block group $i$ on an average weekday) and $\lambda_i$ is the relative "risk" or likelihood of boardings. The errors $\varepsilon_i$ can account for overdispersion or extra-Poisson variance. 
+
+This model, the Besag-York-Mollie, decomposes $\varepsilon_i$ into nonspatial errors $\theta_i$ and spatial errors $\phi_i$. 
+$$
+log(\lambda_i) = \beta_0 + \sum_{k=1}^{K}x_{ik}\beta_k + \theta_i + \phi_i
+$$
+
+When $W$ is an adjacency matrix with entries $w_{ij}$ equal to 1 if block groups $i$ and $j$ share boundaries and 0 otherwise, each $\phi_i$ is defined
+
+$$
+\phi_i | \phi_j, j \neq i \sim \text{Normal}\left( \alpha \frac{\sum_{i=1}^{1495}w_{ij}}{d_{ii}}\phi_j, \sigma^2\right)
+$$
+Parameter $\alpha$ determines the amount of spatial correlation present in $Y$. The BYM simplifies the prior by setting $\alpha = 1$. 
+
+Alternatively, we can let matrix $Q$ equal $D - W$ where $W$ is the adjacency matrix and $D$ is a diagonal matrix with entries $d_{ii}$ equal to the number of neighbors block group $i$ has. Then, $\phi$ can be defined 
+
+
+$$
+\phi \sim \text{Normal}(0, Q^{-1})
+$$
+
+The specific model fit here is actually a reparameterization of the classic BYM called the BYM2. The BYM2 replaces $\theta_i + \phi_i$ as follows: 
+
+$$
+log(\lambda_i) = \beta_0 + \sum_{k=1}^{K}x_{ik}\beta_k + \left(\sqrt{\frac{\rho}{s}}\theta_i^{*} + \sqrt{1-\rho}\phi_i^{*}\right)\sigma
+$$
+
+
+\noindent where the new parameters $\rho, s, \text{and } \sigma$ are included to aid in sampling from the posterior. While the reparameterization appears significantly more complex than the BYM, the additional parameters do not change the structure of the BYM but rather allow Stan to explore the posterior more efficiently. In summary, 
+
+
+* $\rho \in [0, 1]$ determines how much variance or overdispersion is caused by spatial versus nonspatial error terms. $\rho = 1$ corresponds to all variance being spatial.
+* The term $\left(\sqrt{\frac{\rho}{s}}\theta_i^{*} + \sqrt{1-\rho}\phi_i^{*}\right)\sigma$ is a set of convolved random effects. The convolution of $\theta_i$ and $\phi_i$ allows the two sets of random effects to interact more efficiently than in previous parameterizations. This is the primary improvement of the BYM2: the convolution significantly improves computational efficiency and decreases computation time. 
+* $\sigma$ is the standard deviation of the entire convolved random effect
+* $s$ is a scaling factor such that Var($\theta_i$) $\approx$ Var($\phi_i$) $\approx$ 1, an assumption which is necessary for $\sigma$ to truly be the standard deviation of the error terms. 
+
+
+
+\noindent In addition to improving sampling efficiency, the BYM2 takes a more "fully Bayesian" approach to hyperprior and hyperparameter selection. We follow the recommendations of Riebler et al (2016) and Morris et al (2019) in setting the following priors: 
+
+* $\theta_i \sim$ Normal($0, n)$ where $n$ is the number of connected subgraphs in the neighborhood graph. In many cases, such as modeling all counties in a state, $n=1$ and $\theta_i$ gets a simple Normal($0, 1$) prior. It is possible to fit the BYM2 with $n > 1$, although the computation time is significantly longer when $\sigma$ and $s$ must be calculated for each subgraph. 
+* $\sigma \sim$ Normal($0, 1$)
+* $\rho \sim$ Beta(1/2, 1/2). This prior is shaped like a horseshoe which suggests that variance will be mostly spatial or mostly nonspatial. This allows the sampler to avoid spending unnecessary time exploring unlikely combinations of $\theta_i$ and $\phi_i$. 
+    
+
+    
+
+
+# Code
+
+The code used to fit this model is in the Github organization [here](https://github.com/Metropolitan-Council/spatial-ridership-mod). All of the files in the scripts/ folder were used to prepare the data and fit the model. In the stan/ folder, the file `bym2_ysim.stan` was used for this project. The code is below: 
+
+```{r}
+cat(get_stancode(mod))
+```
+
+
+# Model Performance
+
+For this project, the model was run for 2000 iterations on 4 chains with `max_treedepth = 12`. Here are the parameter estimates: 
+```{r}
+print(mod, pars = c("beta0", "beta", "sigma", "rho", "theta[5]", "phi[5]", "convolved_re[5]"), 
+      probs = c(.025, .975))
+```
+
+These estimates correspond to the following covariates:
+
+| Variable | Meaning                                      | Source        |
+|----------|----------------------------------------------|---------------|
+| $x_1$    | Employment density                           | 2017 LEHD     |
+| $x_2$    | Percent of jobs for white employees          | 2017 LEHD     |
+| $x_3$    | Percent of jobs for employees under age 30   | 2017 LEHD     |
+| $x_4$    | Walkability                                  | OpenStreetMap |
+| $x_5$    | Average number of vehicles per household     | 2018 ACS      |
+| $x_6$    | Median age                                   | 2018 ACS      |
+| $x_7$    | Presence of college campus                   | Homeland Infrastructure Foundation-Level Data (HIFLD)   |
+| $x_8$    | Presence of rail station                     | MN Geospatial Commons              |
+| $x_9$    | Presence of hospital campus                  | Hennepin County Open Data              |
+| $x_{10}$ | Presence of MSP International Airport        | PolicyMap              |
+| $x_{11}$ | Population density                           | 2018 ACS      |
+| $x_{12}$ | Median household income                      | 2018 ACS      |
+| $x_{13}$ | Percent of housing units occupied by renters | 2018 ACS      |
+
+There are some issues with running the model for so few iterations. The effective sample size `n_eff` is very low for $\sigma$ and $\rho$ in particular. 46 transitions also reach maximum treedepth. For my honors thesis, I ran the model for 10000 iterations with `max_treedepth = 15` which dealt with both of those problems. The parameter estimates don't change significantly between 2000 and 10000 iterations but it does take about 5 times longer to run. 
+
+### ppcheck
+
+Even with only 2000 iterations, the model fits well: 
+
+```{r}
+bayesplot::color_scheme_set("purple")
+
+y_sim <- as.matrix(mod, pars = c("y_sim"))
+
+pp_check(y, y_sim[sample(50), ], ppc_dens_overlay) +
+  theme_minimal() +
+  xlim(0, 200) + ylim(0, 0.025) 
+```
+
+### Residuals
+```{r}
+params <- rstan::extract(mod, c('beta0', 'beta', 'convolved_re'))
+E <- mod_dat$daily_stops
+
+mm <- model.matrix(~. , model.frame(xdat), contrasts.arg = lapply(Filter(is.factor,
+                  model.frame(xdat)), contrasts, contrasts=FALSE))
+
+loglambda <- suppressWarnings(t(sapply(1:nrow(params$beta), function(x)  rowSums(as.matrix(mm)* params$beta[x,]))))
+loglambda0 <- sapply(1:nrow(params$beta0), function(x) params$beta0[x] + loglambda[x, ])
+loglambdare <- loglambda0 + t(params$convolved_re)
+f <- sapply(1:length(E), function(x) E[x] * loglambdare[x, ])
+
+# posterior predictive distribution
+y <- t(sapply(1:nrow(f), function(s) rpois(n = 1, lambda = (f[s, ]))))
+
+y <- vapply(f, function(s) rpois(n = 1, lambda = (f[s, s])), FUN.VALUE = 0)
+
+  # get quantiles etc
+values <- data.table(bg = rep(0, ncol(y)), mean = rep(0, ncol(y)), 
+                     lower = rep(0, ncol(y)), upper = rep(0, ncol(y)), median = rep(0, ncol(y)))
+
+# i know this could be done with apply but idk how right now
+for(i in 1:ncol(y)){
+  values[i, bg := i]
+  values[i, mean := mean(y[, i], na.rm = T)]
+  values[i, lower := quantile(y[, i], 0.025, na.rm = T)]
+  values[i, upper := quantile(y[, i], 0.975, na.rm = T)]
+  values[i, median := median(y[, i], na.rm = T)]
+  
+}
+
+# everything is in the right shape but the values are WAY off lol
+head(values)
+```
+
+
+# Sources
+
+Morris, Mitzi, et al. 2019. “Bayesian hierarchical spatial models: Implementing the Besag York Molli ́e model in stan”. Spatial and Spatio-temporal Epidemiology 31 (). issn: 1877-5845, visited on 04/03/2020. doi:10.1016/j.sste.2019.100301. http://www.sciencedirect.com/science/ article/pii/S1877584518301175.
+
+Riebler, Andrea, et al. 2016. “An intuitive Bayesian spatial model for disease mapping that accounts for scaling”. Statistical methods in medical research 25 (4): 1145–1165.

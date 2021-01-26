@@ -1,0 +1,225 @@
+---
+title: "A Spatial Direct Demand Model: Covid Analysis"
+output:
+  MetroTransitr::metro_html: default
+  html_document:
+    number_sections: no
+    theme: paper
+    toc: yes
+    toc_float: yes
+  pdf_document: default
+---
+<style type="text/css">
+html {
+  max-width: 10.5in;
+  margin: 1.25in 0.75in;
+  font-family: "Calibri", helvetica, sans-serif;
+  font-size: 11pt;
+}
+
+body { width: 8.5in;
+       max-width: 10.5in;
+}
+</style>
+
+```{r setup, include=FALSE}
+library(knitr)
+library(sf)
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(bayesplot)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align="left", out.width = "100%", out.height = "100%")
+```
+
+
+```{r include = FALSE}
+fit <- readRDS("/Users/raven/Documents/honors/mt-translation/covid/fits/covid_bymfit_nov25.RDS")
+bg_dat <- readRDS('/Users/raven/Documents/honors/mt-translation/covid/data/modeling-dat/mod_dat_unscaled.RDS')
+
+bgs <- tigris::block_groups("MN", c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington"))
+
+bg_dat <- dplyr::left_join(bgs, bg_dat, on = GEOID)
+
+bg_dat19 <- readRDS('/Users/raven/Documents/honors/mt-translation/2019/data/modeling-dat/mod_dat_unscaled.RDS')
+bg_dat19 <- dplyr::left_join(bgs, bg_dat19, on = GEOID)
+```
+
+```{r}
+theme_map <- function(...) {
+  theme_minimal() +
+    theme(
+      text = element_text(family = "Avenir Medium", color = "#22211d"),
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      # panel.grid.minor = element_line(color = "#ebebe5", size = 0.2),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.background = element_rect(fill = "white", color = NA), 
+      panel.background = element_rect(fill = "white", color = NA), 
+      legend.background = element_rect(fill = "white", color = NA),
+      panel.border = element_blank(),
+      ...
+    )
+}
+```
+
+
+
+<!-- ```{r} -->
+<!-- print(fit, pars = c("beta0", "beta", "rho", "sigma", "theta[5]", "phi[5]")) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- color_scheme_set("purple") -->
+
+<!-- y <- bg_dat$daily_boards -->
+<!-- yrep <- as.matrix(fit, pars = "y_sim") -->
+
+<!-- ppc_dens_overlay(y, yrep[sample(1:ncol(yrep), 50), ]) + -->
+<!--   xlim(0, 100) + -->
+<!--   labs(title = "posterior predictive check") -->
+<!-- ``` -->
+
+
+# Introduction
+
+This document summarizes the results of a spatial direct demand model of Metro Transit’s bus ridership. The model takes the spatial dimension of bus ridership into account and incorporates demographic predictors. This builds on existing methodology by leveraging more of what we know about ridership and the region to predict where ridership will occur.
+
+The model and analysis presented here provide insight to the likelihood of ridership across space given the existing network. The analysis is conducted at the Census block group level. Ridership is defined as the average number of weekday boardings per block group in 2020. Predictors are from the 2018 American Community Survey (ACS) 5-year estimates and 2017 Longitudinal Employee Household Dynamic Survey (LEHD). The use of demographic predictors allows us to consider where ridership is likely to occur based on known characteristics of the region.
+
+Bus ridership is inherently spatial. In other words, ridership (or boardings) can only occur at fixed bus stops. However, we intuitively expect neighboring block groups to have similar levels of ridership regardless of specific bus stop placement. For example, we might expect all block groups along the A Line to have similar levels of A Line ridership even though not all of those block groups contain an A Line stop. The model presented here addresses these spatial concerns by introducing spatial autocorrelation and geographic smoothing into the model. In other words, this model smooths estimates between block groups to create more stable and realistic predictions of ridership across space. This spatial component adds nuance to the model and allows us to see patterns we cannot see in non-spatial models.
+
+We first performed this analysis using bus ridership data from 2019. The 2019 analysis can be found [here](mtapshiny1p/MT/SIDev/spatial-direct-demand-2019analysis.html). This document outlines key findings from the model of 2020 ridership and compares findings to the pre-COVID 2019 analysis.  
+
+
+## Motivation for 2020 Model
+
+We were motivated to refit this model using 2020 ridership data to understand who is still using transit under COVID-19 conditions. In many ways, we expect these riders to be Metro Transit's essential, core ridership. Performing this analysis gives insight into who those essential riders are. 
+
+Figure 1 shows average weekday boardings by Census block group in 2019 versus 2020 on the same scale. 
+
+
+```{r fig.cap = "Ridership in 2019 versus 2020"}
+a <- ggplot(bg_dat19 %>% dplyr::filter(daily_boards != 0)) +
+  geom_sf(aes(fill = log(daily_boards)), lwd = 0) +
+  scale_fill_viridis_c(option = "plasma", 
+                       limits = c(-5.541264, 9.990346)) +  # set limits based on 2019 ridership
+  theme_map(legend.position = "bottom") +
+  labs(title = "Average daily boardings, \nJan - December 2019", 
+       guide = "log(boardings)")
+
+match <- bg_dat %>%
+  dplyr::filter(GEOID %in% (bg_dat19 %>% dplyr::filter(daily_boards != 0))$GEOID)
+
+b <- ggplot(match) +
+  geom_sf(aes(fill = log(daily_boards)), lwd = 0) +
+  scale_fill_viridis_c(option = "plasma", 
+                       limits = c(-5.541264, 9.990346), 
+                       na.value = "grey70") +
+  theme_map(legend.position = "None") +
+  labs(title = "Average daily boardings, \nMarch - September 2020", 
+       guide = "log(boardings)")
+
+#extract legend
+#https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)}
+
+legend <- g_legend(a)
+
+gridExtra::grid.arrange(arrangeGrob(a + theme(legend.position="none"),
+                                    b + theme(legend.position="none"),
+                                    nrow=1),
+                        legend, nrow=2,heights=c(10, 1))
+```
+
+# Findings
+
+This model was tested with a wide variety of ACS variables. The model presented here uses eleven of the most influential variables tested. Five of these demographic predictors have a positive correlation with ridership. Areas with these characteristics have a higher “propensity for ridership” compared to other block groups. Similarly, the two demographic variables negatively correlated with ridership can be thought of as decreasing an area’s propensity for ridership.
+
+Detailed descriptions and maps of the variables can be found in the [2019 report](). Table 1, below, summarizes the coefficient estimates for both the 2019 and 2020 models. 
+
+
+Table: Summary of coefficient estimates
+
+| Variable | Meaning                                        | 2019            | covid           |
+|----------|------------------------------------------------|-----------------|-----------------|
+| $x_1$    | Employment density                             | 0.07            | 0.06            |
+| $x_2$    | Walkability                                    | 0.06            | 0.03            |
+| $x_3$    | Percent of households with no vehicle          | 0.04            | 0.06            |
+| $x_4$    | Percent of residents aged 18 to 34             | 0.06            | 0.04            |
+| $x_5$    | Presence of college or university campus       | 0.32            | 0.08            |
+| $x_6$    | Presence of rail station                       | 0.36            | 0.52            |
+| $x_7$    | Presence of hospital campus                    | 0.23            | 0.00            |
+| $x_8$    | Presence of MSP International Airport          | 0.52            | 0.00            |
+| $x_9$    | Median household income                        | -0.10           | -0.20           |
+| $x_{10}$ | Percent of housing units occupied by renters   | 0.15            | 0.15            |
+| $x_{11}$ | Percent of residents identified as white alone | -0.06           | -0.07           |
+
+
+Table: Summary of change in coefficient estimates
+
+| Change    | Variables                                                                                                          |
+|-----------|--------------------------------------------------------------------------------------------------------------------|
+| No change | Employment density, percent of housing units occupied by renters, percent of residents identified as white alone   |
+| Increase  | Percent of residents with no vehicle, presence of rail station, median household income                            |
+| Decrease  | Walkability, percent of residents age 18-34, presence of college campus, presence of hospital, presence of airport |
+
+
+
+
+Many of these changes are fairly intuitive. For example, almost all of the "land use" predictors became less important in the 2020 model under COVID-19 conditions. For example, hospitals ($x_7$) and college campuses ($x_5$) are no longer generators of ridership. Additionally, ridership is no longer a strong positive predictor of ridership. While walkability does encourage ridership, the positives of walkability are easily outweighed by the risk of COVID-19. 
+
+We see some coefficients remain stable between 2019 and 2020. For example, employment density ($x_1$) and percent renters ($_10$). These predictors are equally important under normal and pandemic conditions. We might say that in block groups with high employment density, for example, we expect ridership to remain more stable than in block groups with average or low employment density. 
+
+Finally, we see some coefficients becoming larger in 2020. Notably, percent of households with no vehicle is a stronger predictor in 2020 than in 2019. We often expect this to be a strong predictor of ridership, even though the coefficient was relatively small in the 2019 model. In 2020, with much of the 9-to-5 commute removed, the effect of this predictor becomes more pronounced. In other words, the model -- and ridership -- have become less sensitive to the 9-to-5 commute and more sensitive to demographic differences. 
+
+
+<details>
+  <summary> Compare distribution of 2019 vs 2020 coefficients </summary>
+
+The figure below shows the distribution of possible coefficient estimates for each predictor in both 2019 and 2020. If the two distributions line up closely, the predictor has not changed significantly. The less the distributions overlap, the more confident we are that the coefficient has changed between 2019 and 2020. Note that all of these distributions have significant overlap. Therefore, a major limitation of this comparative analysis is relatively small and uncertain change year over year. The blue distribution represents 2019 and the red, 2020. 
+
+```{r}
+covid_betas <- as.matrix(fit, pars = "beta")
+
+fit19 <- readRDS("/Users/raven/Documents/honors/mt-translation/2019/fits/bym2_disagf.RDS")
+betas_19 <- as.matrix(fit19, pars = "beta")
+
+betas <- data.table(variable = c("emp_density", "walkability", "perc_no_veh", "age18to34",
+          "college", "lightrail", "hospital", "airport", "estimate_median_hh_income", 
+          "perc_rent", "perc_only_white"), 
+          betas19 = apply(betas_19, 2, as.list), 
+          betas20 = apply(covid_betas, 2, as.list))
+
+betas <- betas %>%
+  unnest(cols = c(betas19, betas20)) %>%
+  mutate(betas19 = as.numeric(betas19),
+         betas20 = as.numeric(betas20))
+```
+
+```{r fig.cap = "Comparison of coefficient distributions, 2019 vs 2020"}
+colors <- c("2019" = "blue", "2020" = "red")
+
+ggplot(data = betas) + 
+  geom_histogram(aes(x = betas19, fill = "2019"), fill = "blue", alpha = 0.5) + 
+  geom_histogram(aes(x = betas20, fill = "2020"), fill = "red", alpha = 0.5) +
+  theme_light() +
+  labs(x = NULL, y = NULL, fill = "Year") +
+  scale_fill_manual(values = colors, name = "Year") +
+  theme(legend.position = "top") +
+  facet_wrap(~variable, scales = "free") 
+```
+</details>

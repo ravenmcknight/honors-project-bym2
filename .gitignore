@@ -1,0 +1,7 @@
+data/
+img/
+fits/
+*.Rproj
+.Rproj.user/
+*.html
+.DS_Store

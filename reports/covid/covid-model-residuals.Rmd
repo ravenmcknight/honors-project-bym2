@@ -1,0 +1,251 @@
+---
+title: "COVID ridership model residuals"
+author: "Raven McKnight"
+output:
+  MetroTransitr::metro_html: default
+---
+<style type="text/css">
+html {
+  max-width: 10.5in;
+  margin: 1.25in 0.75in;
+  font-family: "Calibri", helvetica, sans-serif;
+  font-size: 11pt;
+}
+
+body { width: 8.5in;
+       max-width: 10.5in;
+}
+</style>
+
+```{r setup, include=FALSE}
+packages <- c("knitr", "sf", "ggplot2", "leaflet", "data.table", "tigris", "dplyr", "scales", 
+              "ggnewscale", "htmltools")
+
+miss_pkgs <- packages[!packages %in% installed.packages()[,1]]
+
+if(length(miss_pkgs) > 0){
+  install.packages(miss_pkgs)
+}
+
+invisible(lapply(packages, library, character.only = TRUE))
+
+rm(miss_pkgs, packages)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r echo = FALSE}
+# fit <- readRDS("fits/covid_bymfit_nov25.RDS")
+bg_info <- readRDS("~/Documents/honors/mt-translation/covid/data/bg_info.RDS")
+bg_info_unscaled <- readRDS("~/Documents/honors/mt-translation/covid/data/bg_info_unscaled.RDS")
+bg_info_unscaled <- bg_info_unscaled[GEOID %in% bg_info$GEOID]
+
+# betas <- readRDS("fits/betas.RDS")
+```
+
+
+```{r echo = FALSE}
+## get prediction for each bg using function from shiny app
+predictDist <- function(selected_bg, betas, E, inputdat) {
+  
+  # model matrix
+  mm <- model.matrix(~. , model.frame(inputdat))
+
+  # predictions
+  loglambda <- t(sapply(1:nrow(betas), function(x) rowSums(as.matrix(mm) * betas[x, ])))
+  attr(loglambda, "dimnames") <- NULL
+  loglambdare <- sapply(1:ncol(loglambda), function(x) loglambda[, x]  + unlist(selected_bg$convolved_re)[x])
+   
+  f <- t(sapply(1:length(loglambdare), function(x) E * exp(loglambdare[x])))
+
+  y <- t(sapply(1:ncol(f), function(s) rpois(n = 1, lambda = f[s])))
+
+  values <- list(lower = quantile(y, 0.025, na.rm = T),
+                 upper = quantile(y, 0.975, na.rm = T),
+                 mean = mean(y, na.rm = T),
+                 median = median(y, na.rm = T))
+  
+  return(list(values = values, y = y))
+}
+
+
+## add predictions to bg info
+# for(i in 1:nrow(bg_info)){
+#   pred <- predictDist(selected_bg = bg_info[i,],
+#                       betas = betas,
+#                       E = bg_info_unscaled[i,]$daily_stops,
+#                       inputdat = bg_info[i, 4:14])$values
+#   bg_info[i, preds := list(pred)]
+#   bg_info[i, mean_pred := pred$mean]
+# }
+
+# saveRDS(bg_info, "bg_info_pred.RDS")
+
+bg_info <- readRDS("~/Documents/honors/mt-translation/covid/data/bg_info_pred.RDS")
+
+bg_resids <- bg_info_unscaled[, .(GEOID, daily_boards)][bg_info[, .(GEOID, preds, mean_pred)], on = "GEOID"]
+bg_resids[, mean_resid := daily_boards - mean_pred]
+bg_resids[, rel_resid := (mean_resid/daily_boards)*100]
+```
+
+```{r echo = FALSE, include = FALSE}
+counties <- c("Anoka", "Carver", "Dakota", "Hennepin", "Ramsey", "Scott", "Washington")
+bgs <- block_groups("MN", counties)
+
+bg_resids <- dplyr::left_join(bgs, bg_resids, on = GEOID)
+
+bg_resids_plot <- bg_resids %>% filter(!is.na(rel_resid))
+```
+
+```{r echo = FALSE}
+theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Avenir Medium", color = "#22211d"),
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # panel.grid.minor = element_line(color = "#ebebe5", size = 0.2),
+    panel.grid.major = element_line(color = "#ebebe5", size = 0.2),
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "#f5f5f2", color = NA), 
+    panel.background = element_rect(fill = "#f5f5f2", color = NA), 
+    legend.background = element_rect(fill = "#f5f5f2", color = NA),
+    panel.border = element_blank(),
+    ...
+  )
+}
+```
+
+# Introduction
+
+These maps show the *residuals* from a spatial Bayesian direct demand model of 2020 bus ridership. In both maps, positive (blue) residuals represent areas where ridership is *higher* than the model predicts and negative (red) residuals represent areas where ridership is lower. These residuals exist after taking all of the predictors in Table 1 into account. 
+
+Table: Predictors used in ridership model
+
+| Variable | Meaning                                        | coefficient     |
+|----------|------------------------------------------------|-----------------|
+| $x_1$    | Employment density                             | 0.06            |
+| $x_2$    | Walkability                                    | 0.03            |
+| $x_3$    | Percent of households with no vehicle          | 0.06            |
+| $x_4$    | Percent of residents aged 18 to 34             | 0.04            |
+| $x_5$    | Presence of college or university campus       | 0.08            |
+| $x_6$    | Presence of rail station                       | 0.52            |
+| $x_7$    | Presence of hospital campus                    | 0.00            |
+| $x_8$    | Presence of MSP International Airport          | 0.00            |
+| $x_9$    | Median household income                        | -0.20           |
+| $x_{10}$ | Percent of housing units occupied by renters   | 0.15            |
+| $x_{11}$ | Percent of residents identified as white alone | -0.07           |
+
+
+# Static Map
+
+```{r include = FALSE}
+# bg_resids <- bg_resids %>%
+#   mutate(bins = ifelse(rel_resid > 0, "1 - 25%", NA)) %>%
+#   mutate(bins = ifelse(rel_resid > 25, "26 - 50%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid > 50, "51 - 75%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid > 75, "75 - 100%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid <= 0, "0 - 50%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid < -50, "51 - 100%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid < -100, "101 - 250%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid < -250, "251 - 1000%", bins)) %>%
+#   mutate(bins = ifelse(rel_resid < -1001, "> 1001%", bins))
+#   
+# cols = c("> 1001%" = "#ff3e22", "251 - 1000%" = "#ff7352", "101 - 250%" = "#ff9e81", 
+#          "51 - 100%" = "#ffc6b2", "0 - 50%" = "#ffecaa", 
+#          "1 - 25%" = "#c6c6f7", "26 - 50%" = "#9696e0", "51 - 75%" = "#7e7ecf", 
+#          "75 - 100%" = "#3a3a98")
+
+## mpls, stp outlines for mapping
+url = 'ftp://ftp.gisdata.mn.gov/pub/gdrs/data/pub/us_mn_state_metc/bdry_census2010counties_ctus/shp_bdry_census2010counties_ctus.zip'
+loc <- file.path(tempdir(), 'cities.zip')
+download.file(url, loc)
+unzip(loc, exdir = file.path(tempdir(), 'cities'), overwrite = TRUE)
+file.remove(loc)
+cities <- st_read(file.path(tempdir(), 'cities'), layer = 'Census2010CountiesAndCTUs', stringsAsFactors = FALSE)
+cities <- st_transform(cities, "+proj=longlat +datum=NAD83 +no_defs")
+
+msp <- cities %>% filter(CTU_NAME == "Minneapolis" | CTU_NAME == "St. Paul")
+```
+
+```{r}
+# 
+# ggplot() +
+#   geom_sf(data = bg_resids %>% filter(!is.na(rel_resid) & rel_resid > 0), 
+#           aes(fill = bins), color = "gray90", lwd = 0.2) +
+#   theme_map() + 
+#   scale_fill_manual(values = cols, name = "Positive Residuals\n (Overperforming)") +
+#   new_scale("fill") +
+#   geom_sf(data = bg_resids %>% filter(!is.na(rel_resid) & rel_resid < 0), 
+#           aes(fill = bins), color = "gray90", lwd = 0.2) +
+#     scale_fill_manual(values = cols, name = "Negative Residuals\n (Underperforming)", 
+#                       breaks = c("0 - 50%", "51 - 100%", "101 - 250%", 
+#                                  "251 - 1000%", "> 1001%")) +
+#   geom_sf(data = msp, fill = "transparent") +
+#   labs(title = "Relative Residuals of 2020 Ridership Model",
+#        subtitle = "By Census Block Group")
+# 
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = bg_resids_plot, aes(fill = mean_resid), 
+          lwd = 0.2, color = "gray90") +
+  scale_fill_fermenter(breaks = c(-1000, -500, -100, -50, 0,
+                               50, 100, 500, 1000), 
+                       palette = "RdBu", direction = 1, name = "Residuals") +
+  geom_sf(data = msp, fill = "transparent") +
+  theme_map() + 
+  labs(title = "Residuals of 2020 Ridership Model",
+       subtitle = "By Census Block Group")
+```
+
+
+```{r}
+# ggplot() +
+#   geom_sf(data = bg_resids_plot, aes(fill = rel_resid), lwd = 0) +
+#   scale_fill_fermenter(breaks = c(-1000, -250, - 100,-50, 0, 
+#                                   25, 50, 75), 
+#                        palette = "RdBu", direction = 1, name = "Relative Residuals") +
+#   theme_map() + 
+#   labs(title = "Relative Residuals of 2020 Ridership Model",
+#        subtitle = "By Census Block Group")
+```
+
+
+
+
+# Interactive Map
+
+
+
+```{r echo = FALSE, message = TRUE}
+binpal <- colorBin(bins = c(-24648, -1000, -500, -100, -50, 0, 50, 100, 500, 1000, 2405),
+                   domain = bg_resids_plot$mean_resid, 
+                   palette = "RdBu")
+
+binlabs <- sprintf(
+  "<strong> Block Group ID: </strong> %s <br>
+  <strong> Observed Daily Boardings: </strong> %s <br><strong> Predicted daily boardings: </strong> %s
+  <br><strong> Residual: </strong> %s daily boards <br> <strong> Relative Residual: </strong> %s percent 
+   ",
+  bg_resids_plot$GEOID, round(bg_resids_plot$daily_boards, 2), round(bg_resids_plot$mean_pred, 2), 
+  round(bg_resids_plot$mean_resid, 2), round(bg_resids_plot$rel_resid, 2)
+) %>% lapply(htmltools::HTML)
+```
+
+```{r message = TRUE, include = TRUE}
+leaflet() %>% addProviderTiles(providers$CartoDB.Positron) %>% 
+  setView(lat = 44.963, lng = -93.22, zoom = 10) %>%
+  addPolygons(data = bg_resids_plot, 
+              fillColor = ~binpal(bg_resids_plot$mean_resid), color = 'gray', 
+              weight = 1, fillOpacity = 0.8, label = binlabs)
+```
+
+

@@ -1,0 +1,387 @@
+---
+title: "A Spatial Model of Bus Ridership"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  MetroTransitr::metro_html: default
+  pdf_document: default
+  html_document:
+    number_sections: no
+    theme: paper
+    toc: yes
+    toc_float: yes
+  
+---
+<style type="text/css">
+html {
+  max-width: 10.5in;
+  margin: 1.25in 0.75in;
+  font-family: "Calibri", helvetica, sans-serif;
+  font-size: 11pt;
+}
+
+body { width: 8.5in;
+       max-width: 10.5in;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align="left", out.width = "100%", out.height = "100%")
+```
+
+
+
+# Introduction
+
+
+This document explores the results of a spatial model of Metro Transit's bus ridership. The model takes the spatial dimension of bus ridership into account and incorporates demographic predictors. This builds on existing methodology by leveraging more of what we know about ridership and the region to predict where ridership will occur. 
+
+The model and analysis presented here provide insight to the likelihood of ridership across space. The analysis is conducted at the Census block group level. Ridership is defined as the average number of weekday boardings per block group in 2018. Predictors are from the 2018 American Community Survey (ACS) 5-year estimates and 2017 Longitudinal Employee Household Dynamic Survey (LEHD). The use of demographic predictors allows us to consider where ridership is likely to occur based on known characteristics of the region. 
+
+Bus ridership is inherently spatial. In other words, ridership (or boardings) can only occur at fixed bus stops. However, we intuitively expect neighboring block groups to have similar levels of ridership regardless of specific bus stop placement. For example, we might expect all block groups along the A Line to have similar levels of A Line ridership even though not all of those block groups contain an A Line stop. The model presented here addresses these spatial concerns by introducing spatial autocorrelation and geographic smoothing into the model. In other words, this model smooths estimates between block groups to create more realistic predictions of ridership across space. This spatial component adds nuance to the model and **allows us to see patterns we cannot see in non-spatial models.** 
+
+This document outlines key findings from this model of bus ridership. We discuss specific predictors and improvements over non-spatial models. More extensive motivations and methods are available at the end of the document. 
+
+
+
+# Findings
+
+This model was tested using a wide variety of ACS variables. The model presented here uses thirteen of the most influential variables tested. Seven of these have a positive correlation with ridership. Areas with these seven characteristics have a higher "propensity for ridership" compared to other block groups. Similarly, variables negatively correlated with ridership can be thought of as decreasing an area's propensity for ridership. Below, we describe all thirteen variables and their associations with ridership.
+
+## High Propensity for Ridership
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/perc_rent.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br> **Percent renters** is the most influential positive predictor for ridership in this model. This variable tends to be correlated with dense, lower income, and less white areas. Areas with many renters are more tightly clustered around major transit corridors than other density measures, such as employment or population density, making it a powerful predictor of transit ridership. 
+
+</div>
+  
+</div>
+
+
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/log_emp_dens.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>**Employment density** is a quintessential predictor of ridership. Like percent renters, employment density is largely centered on the urban core with decreasing density in inner and outer suburbs. Note that the color scale in the map is logged to account for extreme outliers in downtown Minneapolis and Saint Paul.
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/w_perc_jobs_age_less30.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>**Percent of jobs for employees under age 30** is a specific employment characteristic from the LEHD data set. The spatial pattern of this variable is somewhat less clear but the strong association with ridership suggests that we can break employment density down into more nuanced predictors. Including such predictors builds on our prior understanding of employment density's importance in transit modeling. This predictor largely matches our intuition that younger people are more likely to take transit. 
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/walkability.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>**Walkability** is another classic predictor of ridership. Here, we define "walkability" as the area of a 10-minute walk isochrone from the population-weighted centroid of each block group. A walk isochrone indicates how far someone can walk along the existing street/sidewalk network in a set amount of time (here, 10 minutes). This predictor is also largely concentrated around the urban core and is slightly overshadowed by the "stronger" predictors above. Note that many rural block groups are missing a walkability value because their population-weighted centroid is far away from the existing street network. For the most part, block groups missing this data are outside of Metro Transit's service area. 
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/log_pop_density.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>**Population density** is a prerequisite for transit ridership. In this model, however, population density is somewhat overshadowed by percent renters and employment density. These three predictors are strongly correlated themselves and all represent a similar spatial pattern. Note that the color scale in this map is also logged. 
+</div>
+  
+</div>
+
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/college.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br> We include block groups containing **college or university campuses** as an indicator or dummy variable. These block groups have significantly higher ridership than we would expect due to the student population.  
+</div>
+  
+</div>
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/lightrail.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br> Block groups containing a **rail station** also have higher ridership than we would otherwise predict. This is likely due to increased transfers to and from rail lines. 
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/hospital.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br> Finally, block groups with **hospitals** have higher-than-expected ridership. This is particularly notable in light of COVID-19 and Metro Mobility's essential health care worker rides. 
+</div>
+  
+</div>
+
+
+
+## Low Propensity for Ridership
+
+
+
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/estimate_median_hh_income.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>**Median household income** is the greatest negative predictor of ridership in this model. This relationship reflects our previous understanding of Metro Transit's ridership, which tends to be more low-income than the background population. Income is inversely related to key positive predictors such as employment density. 
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/w_perc_jobs_white.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>This variable is another example of a specific employment characteristic from the LEHD data set. Block groups with a majority of **jobs for white employees** tend to be outside of the urban core, in the suburbs. This variable is also associated with income levels and transit availability. 
+</div>
+  
+</div>
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/estimate_median_age.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>Higher **median age** is associated with lower ridership. We expect this relationship based on previous studies of Metro Transit's ridership (Metro Transit, 2019). In general, the urban core is "younger" than the outer suburbs. 
+</div>
+  
+</div>
+
+
+
+<div class = "row">
+We can break this predictor down into four generations to get a better sense of the spatial distribution of age in the region: Generation Z (Age 0-25), Millenials (Age 26-40), Generation X (Age 41-55), and Baby Boomers (Age 55+). Millenials are most tightly clustered in the urban core, while Generation X is the most concentrated in outer suburbs. As we might expect, Generation Z and Millenials are associated with higher ridership while Generation X and Baby Boomers are associated with lower ridership. These age cohorts are not included in the model, we map them here to clarify spatial patterns of age. 
+
+<div class = "col-md-6">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/genz.png")
+```
+</div>
+
+
+\
+
+
+<div class = "col-md-6">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/millenial.png")
+```
+</div>
+</div>
+
+<div class = "row">
+<div class = "col-md-6">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/genx.png")
+```
+</div>
+
+<div class = "col-md-6">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/boomer.png")
+```
+</div>
+
+</div>
+
+
+
+
+
+\
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/avg_veh.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>The proportion of households without vehicles is often used as a predictor for ridership. However, average **number of vehicles per household** is a slightly more informative predictor as it can differentiate between single versus multiple vehicle households. The majority of zero vehicle households are tightly clustered in Downtown Minneapolis or Saint Paul. Suburban households have an average closer to 2 or 3 vehicles. 
+</div>
+  
+</div>
+
+
+
+
+
+
+
+<div class = "row">
+  
+<div class = "col-md-8">
+```{r}
+knitr::include_graphics("/Users/raven/Documents/honors/honors-project/img/map/airport.png")
+```
+</div>
+  
+<div class = "col-md-4">
+<br><br>Somewhat counterintutively, the **MSP International airport** is associated with significantly lower ridership. Recall this model only accounts for *bus* ridership. We would see a positive correlation if this model included light rail. 
+</div>
+  
+</div>
+
+
+## Improvement over Non-Spatial Models
+
+A key finding of this analysis is that spatial models allow us to see different, more nuanced patterns than we find with non-spatial models. In other words, the relationship between predictors and ridership change when we account for spatial correlation. Broadly, we see two types of changes: 
+
+
+**1. Predictors which are *less* important in spatial models**  
+Predictors which become less important in a spatial model often capture spatial patterns themselves. Population density is a prime example of such a predictor. Population density is included in practically all models of transit ridership because we know ridership can only exist where there is a sufficient density of people. When we use spatial models, we can focus less on "prerequisite" predictors like density because we rely less on them to define spatial patterns.
+
+
+**2. Predictors which are *more* important in spatial models**  
+The explanation for predictors which are more significant in spatial models is slightly more nuanced. These variables are inefficient at predicting ridership over a large area (for example, the 7 County Metro Area) but can be useful in smaller areas with more things held constant. One example is median household income. We might assume that low-income areas will have higher ridership than high-income areas. However, a low-income area far away from transit will likely have lower ridership than a high-income area close to transit. The spatial model presented here allows us to see that higher median income *is* associated with lower ridership, but only when neighboring values are taken into consideration. 
+
+Between these two types of change, spatial models can show entirely different patterns than their non-spatial counterparts. Often, the conclusions from spatial models are more consistent with our understanding of ridership (for example, median household income). 
+
+<!-- # Implications and Future Work -->
+
+<!-- * include demographics of interest at various spatial scales -->
+<!-- * use models like these to leverage demograhpics -->
+<!-- * make predictions, understand dynamics -->
+<!-- * future worK ?? -->
+
+# Motivation
+
+There are several specific motivations for fitting spatial, demographic models of ridership. First, there is evidence to suggest that demographic predictors beyond simple population density may be informative in predicting bus ridership. Previous studies of Metro Transit's ridership have shown that transit riders tend to be more diverse than the background population in terms of race, income, age, and so on (Metro Transit, 2019). While it is challenging to collect demographics from individual bus riders, we can leverage demographic characteristics of the Twin Cities to predict areas of high ridership. 
+
+Including spatial information has other benefits. One primary goal of spatial modeling is to conduct geographic smoothing. In existing methods, such as the process used to determine Transit Market Areas, a model is fit and used to make predictions which are later smoothed using Geographic Information Systems (GIS). This method necessarily sacrifices some granularity in predictions. The model presented here integrates spatial information into the structure of the model itself. This may be particularly helpful in the case of bus ridership data because boardings can only occur at existing bus stops. Geographic smoothing via spatial models can help make predictions in block groups with no existing bus stops and avoid overfitting outliers. 
+
+Census geography itself is a limitation in modeling bus ridership. Geographies such as block groups tend to be bounded by major roadways. Unfortunately, bus routes tend to lie on those same roadways. Because of these bounds, bus stops may be split into block groups counterintuitively. For example, bus stops on either side of the same street traveling in opposite directions are often aggregated into different block groups. The full implications of this limitation are not explored in this study, but some work has been done to define "transit-specific geographies" which could alleviate this problem (Viggiano, 2017). In this study, we use spatial smoothing via modeling to mitigate bounding issues.
+
+In short, the motivations for this type of modeling are (1) to leverage more of what we know about ridership and our region and (2) to conduct geographic smoothing to handle known challenges with transit data. 
+
+
+<!-- Complex statistical models are likely more appropriate for internal use. There is still a place for simple modeles like the TMA model for communicating with the public.  -->
+
+# Methods
+
+This document provides a brief outline of the methodology used in this analysis. More detailed descriptions of the general methodology are available in Morris et al (2019) and Riebler et al (2016). 
+
+The model used in this analysis is a *spatial Bayesian* model. Bayesian models incorporate prior information and produce distributions rather than point estimates as predictions. As described above, the spatial component is included to perform spatial smoothing. Specifically, the spatial aspect of this model accounts for spatial autocorrelation and adjusts predictions in individual block groups based on values in neighboring block groups. 
+
+The specific model used is a reparameterized Besag-York-Mollie (BYM) model. The BYM has similar structure to a classic Bayesian Poisson regression wherein the response variable is assumed to follow a Poisson distribution determined by a set of predictors: 
+
+$$
+Y_i \sim \text{Poisson}(\beta_1 x_1 + \beta_2x_2 + \ldots + \beta_n x_n + \varepsilon_i)
+$$
+
+In this notation, $Y_i$ is the response variable (ridership) in block group $i$. Each $x$ is a predictor (for example, population density), each $\beta$ is the corresponding coefficient, and $\varepsilon_i$ is an error term for each block group. Above,"non-spatial model" refers to this type of Poisson regression. The BYM replaces $\varepsilon_i$ with two terms: non-spatial errors $\theta_i$ and spatial errors $\phi_i$ such that
+
+$$
+Y_i \sim \text{Poisson}(\beta_1 x_1 + \beta_2x_2 + \ldots + \beta_n x_n + \theta_i + \phi_i)
+$$
+
+The term $\phi_i$ is determined based on an adjacency matrix $W$ which encodes spatial relationships between block groups. For block groups $i$ and $j$, entry $w_{ij} = 1$ if block groups $i$ and $j$ share a boundary and $0$ if they do not. This is how spatial information comes into the model and adjusts predictions based on neighbors. More on this matrix and the definition of $\phi_i$ is available in the resources cited above. 
+
+The specific model used in this analysis is a reparameterization of the classic BYM model above called the BYM2. The BYM2 retains the structure of the BYM but is significantly more computationally efficient to fit. The model is fit using Stan via the `rstan` R package. 
+
+# Citations
+
+Metro Transit. 2019. “Transit System Performance Evaluation”. https://metrocouncil.org/ Transportation/Publications-And-Resources/Transit/2019-Transit-System-Performance- Evaluation.aspx.
+
+Morris, Mitzi, et al. 2019. “Bayesian hierarchical spatial models: Implementing the Besag York Molli ́e model in stan”. Spatial and Spatio-temporal Epidemiology 31 (). issn: 1877-5845, visited on 04/03/2020. doi:10.1016/j.sste.2019.100301. http://www.sciencedirect.com/science/ article/pii/S1877584518301175.
+
+Riebler, Andrea, et al. 2016. “An intuitive Bayesian spatial model for disease mapping that accounts for scaling”. Statistical methods in medical research 25 (4): 1145–1165.
+
+Viggiano, Cecilia A. (Cecilia Ann). 2017. “Bus network sketch planning with origin-destination travel data”. Thesis, Massachusetts Institute of Technology. Visited on 04/03/2020. https: //dspace.mit.edu/handle/1721.1/111441.

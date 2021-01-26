@@ -1,0 +1,98 @@
+---
+title: "2020 rider factbook ideas"
+output:
+  MetroTransitr::metro_html: default
+  html_document:
+    number_sections: no
+    theme: paper
+    toc: yes
+    toc_float: yes
+  pdf_document: default
+---
+<style type="text/css">
+html {
+  max-width: 10.5in;
+  margin: 1.25in 0.75in;
+  font-family: "Calibri", helvetica, sans-serif;
+  font-size: 11pt;
+}
+
+body { width: 8.5in;
+       max-width: 10.5in;
+}
+</style>
+
+```{r setup, include=TRUE}
+library(data.table)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r data, include = FALSE}
+## 2019 data
+dat19 <- readRDS("2019/data/modeling-dat/mod_dat_unscaled.RDS")
+setDT(dat19)
+
+dat20 <- readRDS("covid/data/modeling-dat/mod_dat_unscaled.RDS")
+setDT(dat20)
+```
+
+
+```{r change}
+setnames(dat20, "daily_boards", "daily_boards20")
+boarding_change <- dat19[, .(GEOID, daily_boards)][dat20[, .(GEOID, daily_boards20)], on = "GEOID"]
+boarding_change <- boarding_change[daily_boards != 0 & daily_boards20 != 0]
+boarding_change[, change := daily_boards20 - daily_boards]
+boarding_change[, perc_change := (change/daily_boards)*100]
+
+avg_perc_change <- mean(boarding_change$perc_change, na.rm = TRUE)
+```
+
+```{r renters}
+# predictors are the same in both 19 and 20
+
+# get 75th percentile of renters?
+#quantile(dat19$perc_rent, c(0.25, 0.5, 0.75, 0.90), na.rm = TRUE)
+# 75th percentile rounds to 50% which is nice
+
+renters75 <- dat19[perc_rent >= 0.50] # 447 bgs with ridership
+renters50 <- dat19[perc_rent >= .21]
+renters90 <- dat19[perc_rent >= .72]
+
+avg_renters_perc_change <- mean(boarding_change[GEOID %in% renters75$GEOID]$perc_change, na.rm = TRUE)
+
+avg_perc_change - avg_renters_perc_change
+```
+
+"Ridership in neighborhoods with a high percentage of renters decreased by ~9% less than the average block group"
+
+## "Ridership in neighborhoods with at least 50% renters decreased by ~9% less than the average neighborhood."
+
+high percentage = 75th percentile
+
+```{r vehicles}
+quantile(dat19$perc_no_veh, c(0.25, 0.5, 0.75, 0.90), na.rm = TRUE)
+
+veh75 <- dat19[perc_no_veh >= 0.10] 
+veh50 <- dat19[perc_no_veh >= .035]
+veh90 <- dat19[perc_no_veh >= .21]
+
+avg_veh_perc_change <- mean(boarding_change[GEOID %in% veh75$GEOID]$perc_change, na.rm = TRUE)
+
+avg_perc_change - avg_veh_perc_change
+```
+
+"Ridership in neighborhoods with a high percentage of households with no vehicles decreased by ~9% less than the average block group"
+
+## "Ridership in neighborhoods with at least 10% of households with no vehicle decreased by ~9% less than the average neighborhood"
+
+
+```{r rail}
+rail <- dat19[lightrail == 1]
+avg_rail_perc_change <- mean(boarding_change[GEOID %in% rail$GEOID]$perc_change, na.rm = TRUE)
+
+avg_perc_change 
+avg_rail_perc_change
+```
+Only 2% less in block groups with rail stations
+
+
