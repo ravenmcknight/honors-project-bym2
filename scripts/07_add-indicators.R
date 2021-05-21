@@ -41,7 +41,7 @@ ggplot() + geom_sf(data = bgs) + geom_sf(data = cubg)
 
   
 ## light rail
-
+# TODO: switch to database pull
 # data from https://gisdata.mn.gov/dataset/us-mn-state-metc-trans-stop-boardings-alightings
 lr <- fread('data/csv_trans_stop_boardings_alightings/TransitStopsBoardingsAndAlightings2018.csv') # year doesn't really matter
 lr <- lr[Route == "Blue Line" | Route == "North Star" | Route == "Green Line"]

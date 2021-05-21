@@ -24,6 +24,7 @@ setDT(apc)
 apc[, site_id := as.character(site_id)]
 
 # assign stops to block groups ----------------------------
+## TODO: switch to database pulls
 url <- 'ftp://ftp.gisdata.mn.gov/pub/gdrs/data/pub/us_mn_state_metc/trans_transit_stops/shp_trans_transit_stops.zip'
 loc <- file.path(tempdir(), 'stops.zip')
 download.file(url, loc)
@@ -51,10 +52,6 @@ rm(apc) # just for space
 apc_bg <- st_join(apc_loc, bgs, st_intersects)
 setDT(apc_bg)
 
-# count bus stops
-bc <- apc_bg[rail == 0, .(count_bus_stops = length(unique(site_id))), by = 'GEOID']
-rc <- apc_bg[rail == 1, .(count_rail_stops = length(unique(site_id))), by = 'GEOID']
-
 # save stops to block groups
 names(apc_bg)
 stop_to_bg <- apc_bg[, c('site_id', 'GEOID')]
@@ -64,14 +61,6 @@ stop_to_bg <- unique(stop_to_bg)
 
 apc[, site_id := as.character(site_id)]
 apc <- stop_to_bg[apc, on = 'site_id']
-
-# exclude rail stations
-stops2 <- fread('data/csv_trans_stop_boardings_alightings/TransitStopsBoardingsAndAlightings2018.csv') # year doesn't really matter
-stops2 <- stops2[Route == "Blue Line" | Route == "North Star" | Route == "Green Line"]
-
-apc <- apc[!site_id %in% stops2$Site_id]
-# double check Green & Blue line are out
-apc <- apc[line_id != 902 & line_id != 901]
 
 # exclude things outside of 7 county
 apc <- apc[!is.na(GEOID)]

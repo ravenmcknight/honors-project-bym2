@@ -1,5 +1,8 @@
 # Goal: get census variables of interest, 2015-2018
-# I'm sure there are more refined ways to do this 
+
+## NOTE: you can save the covariates just in data/ rather than 
+## in data/covid/ or data/2019/ unless you're using different years 
+## of acs data for different models
 
 ## packages -----------------------------------------------
 
@@ -57,6 +60,7 @@ basics <- basics[, .(year, GEOID, estimate_median_age, estimate_tot_pop, estimat
 saveRDS(basics, 'data/covariates/basic_acs.RDS')
 
 ## age cohorts ----------------------------------
+## only 18-34 gets used
 
 agecohorts <- map_dfr(
   years, 
@@ -134,58 +138,6 @@ language <- language[, .(year, GEOID, perc_english_only)]
 
 saveRDS(language, 'data/covariates/language.RDS')
 
-## educational attainment -----------------------
-
-education <- map_dfr(
-  years,
-  ~ get_acs(
-    geography = "block group",
-    variables = c(total_pop_25 = "B15003_001", 
-                  highschool = "B15003_017", 
-                  highschool_equiv = "B15003_018",
-                  bachelors = "B15003_022"),
-    state = "MN",
-    county = counties,
-    year = .x,
-    survey = "acs5"
-  ),
-  .id = "year"
-)
-
-education <- education %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(education)
-education[, hs_or_equiv := estimate_highschool + estimate_highschool_equiv]
-education[, perc_hs := hs_or_equiv/estimate_total_pop_25]
-education[, perc_bach := estimate_bachelors/estimate_total_pop_25]
-education <- education[, .(year, GEOID, perc_hs, perc_bach)]
-
-saveRDS(education, 'data/covariates/education.RDS')
-
-
-# native/foreign born at CENSUS TRACT
-nativity <- map_dfr(
-  years,
-  ~ get_acs(
-    geography = "tract",
-    variables = c(total_pop = "B05012_001",
-                  tot_native = "B05012_002",
-                  tot_foreign = "B05012_003"),
-    state = "MN",
-    county = counties,
-    year = .x,
-    survey = "acs5"
-  ),
-  .id = "year"
-)
-
-nativity <- nativity %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(nativity)
-nativity[, perc_native := estimate_tot_native/estimate_total_pop]
-nativity[, perc_foreign := estimate_tot_foreign/estimate_total_pop]
-nativity <- nativity[, .(year, GEOID, perc_native, perc_foreign)]
-
-saveRDS(nativity, 'data/covariates/tract/nativity.RDS')
-
 # housing tenure & vehicle availability ---------
 
 housing <- map_dfr(
@@ -212,6 +164,7 @@ housing <- housing[, .(year, GEOID, perc_owner_occ, perc_rent)]
 saveRDS(housing, 'data/covariates/housing.RDS')
 
 # avg number of vehicles per household ----------
+# TODO: less brute force!
 
 vehicles <- map_dfr(
   years, 
@@ -250,72 +203,84 @@ vehicles[, perc_no_veh := zero/summary_est]
 vehicles <- vehicles[, .(year, GEOID, summary_est, zero, one, two, three, four, five, totalveh, avg_veh, perc_no_veh)]
 saveRDS(vehicles, "data/covariates/vehicles.RDS")
 
-# acs employment data ---------------------------
-
-acs_emp <- map_dfr(
-  years,
-  ~ get_acs(
-    geography = "tract",
-    variables = c(transit_commute = "B08006_008",
-                  worked_from_home = "B08006_017",
-                  total_commute = "B08006_001"),
-    state = "MN",
-    county = counties,
-    year = .x,
-    survey = "acs5"
-  ),
-  .id = "year"
-)
-
-acs_emp <- acs_emp %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(acs_emp)
-acs_emp[, perc_transit_comm := estimate_transit_commute/estimate_total_commute]
-acs_emp[, perc_wfh := estimate_worked_from_home/estimate_total_commute]
-acs_emp <- acs_emp[, .(year, GEOID, perc_transit_comm, perc_wfh)]
-
-saveRDS(acs_emp, 'data/covariates/tract/acs-emp.RDS')
-
-## unemployment? --------------------------------
-# only available at tract level
-
-unemp <- map_dfr(
-  years,
-  ~ get_acs(
-    geography = "tract",
-    table = "B21005",
-    summary_var = "B21005_001",
-    state = "MN",
-    county = counties,
-    year = .x,
-    survey = "acs5"
-  ),
-  .id = "year"
-)
-
-unemp <- unemp %>% pivot_wider(names_from = variable, values_from = c('estimate', 'moe'))
-setDT(unemp)
-unemployed <- paste0("estimate_B21005_", c('006', '011', '017', '022', '028', '033'))
-unemp$unemployed <- rowSums(unemp[, ..unemployed])
-unemp[, unemprate := unemployed/summary_est]
-unemp <- unemp[, .(year, GEOID, summary_est, unemployed, unemprate)]
-saveRDS(unemp, "data/covariates/tract/unemp.RDS")
-
 ## employment data ----------------------------------------
-
 # this data is still only available thru 2017
 
-# i'll use the employment data i cleaned here:
-# https://github.com/ravenmcknight/LODES-analysis/blob/master/get-ts-data.R
-# add year restrictions here
+# download LODES files ------------------------------------
 
-tot_jobs <- readRDS('/Users/raven/Documents/projects/LODES-analysis/data/tot_jobs.RDS')
+#### just run this commented code once so you don't end up with multiple dowloaded files
+years <- c(2017)
+urls <- c()
+for (y in years){
+  url1 <- paste0('https://lehd.ces.census.gov/ts-data/lodes/LODES7/mn/od/mn_od_main_JT00_', y, '.csv.gz') # live in state
+  url2 <- paste0('https://lehd.ces.census.gov/ts-data/lodes/LODES7/mn/od/mn_od_aux_JT00_', y, '.csv.gz') # live out of state
+  urls <- rbind(urls, url1, url2)
+}
+
+years2 <- rep(years, each = 2)
+
+for (i in 1:length(urls)){
+  if (urls[i] %like% 'main'){
+    dest <- paste0('covid/data/', years2[i], '.csv.gz')
+    download.file(urls[i, ], dest)
+  }
+  else{
+    dest <- paste0('covid/data/', years2[i], '_aux.csv.gz')
+    download.file(urls[i, ], dest)
+  }
+}
+
+# read files ----------------------------------------------
+files <- list.files(path = 'covid/data/')
+l <- lapply(paste0('covid/data/', files), fread)  # this should be more elegant
+
+for (i in 1:length(l)){
+  l[[i]]$year <- years2[i]
+}
+
+dt <- rbindlist(l)
+
+# save raw dat
+saveRDS(dt, 'covid/data/raw_employment_data.RDS')
+
+# cleaning ------------------------------------------------
+
+# restrict to jobs in metro area
+bs <- blocks(state = 'MN', county = counties, year = 2016)
+
+dt$GEOID10 <- as.character(dt$w_geocode)
+dt <- dt[GEOID10 %in% bs$GEOID10]
+
+saveRDS(dt, 'covid/data/covariates/metro_area_jobs.RDS')
+#dt <- readRDS('ts-data/metro_area_jobs.RDS')
+
+# aggregate to block groups
+dt[, w_bg := substr(as.character(w_geocode), 1, 12)]
+dt[, h_bg := substr(as.character(h_geocode), 1, 12)]
+
+od_counts <- dt[, .(tot_workers = sum(S000), wage_1250 = sum(SE01), wage_1250_3333 = sum(SE02),
+                    wage_333 = sum(SE03), age_29 = sum(SA01), age_30_54 = sum(SA02),
+                    age_55 = sum(SA03), ind_goods = sum(SI01), ind_trade = sum(SE02),
+                    ind_other = sum(SI03)), by = c('w_geocode', 'h_geocode', 'year')]
+saveRDS(od_counts, 'covid/data/covariates/od_jobs.RDS')
+
+# we can use this dt to look at where people are coming from
+# let's create a simpler object to get total counts
+
+tot_counts <- dt[, .(workers = sum(S000)), by = c('w_geocode', 'year')][order(-workers)]
+saveRDS(tot_counts, 'covid/data/covariates/tot_jobs.RDS')
+
+# tot_jobs <- readRDS('covid/data/covariates/tot_jobs.RDS')
 setDT(tot_jobs)
 tot_jobs <- tot_jobs[year %in% years]
-tot_jobs[year == 2017, year := as.character(3)]
-tot_jobs[year == 2016, year := as.character(2)]
-tot_jobs[year == 2015, year := as.character(1)]
+
+## modify this to represent the years you're using, 
+# the most recent year should have the highest number
+tot_jobs[year == 2017, year := as.character(1)]
 setnames(tot_jobs, "w_bg", "GEOID")
 saveRDS(tot_jobs, 'data/covariates/tot_jobs.RDS')
+
+### Then, to get information about who works in a bg, use WAC
 
 # wac <- this is about who works in this bg
 wac_urls <- c('https://lehd.ces.census.gov/data/lodes/LODES7/mn/wac/mn_wac_S000_JT00_2017.csv.gz',
@@ -329,12 +294,14 @@ for(i in 1:length(years)){
 wac_files <- list.files(path = 'data/covariates/wac/')
 l <- lapply(paste0('data/covariates/wac/', wac_files), fread)
 
+# again, modify these years if you need to
 l[[1]]$year <- 3
 l[[2]]$year <- 2
 l[[3]]$year <- 1
 
 
-# this whole section should be cleaned up considerably
+# TODO 
+# this whole section could be cleaned up considerably
 
 # aggregate blocks to bgs
 for(i in 1:3){

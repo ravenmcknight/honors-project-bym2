@@ -43,10 +43,11 @@ noAPC_trips <- trips[!trip_tmsk %in% apctrips]
 noAPC_trips[, .N, line_id][order(-line_id)][1:20]
 
 # drop Northstar, training & testing routes, others with no APC
+## TODO: take out 922 when it becomes B line
 noAPC_trips[as.integer(line_id) > 921, paste0(unique(line_id), collapse = "','")]
 noAPC_trips <- noAPC_trips[!line_id %in% c('888', '922', '771', '740', '791', '942', '906',
                                            '741', '945','951','953','954','955','961','962','963','952',
-                                           '969','941','970','971','972','973')]
+                                           '969','941','970','971','972','973')] 
 
 # check range of dates before continuing!
 range(noAPC_trips$date_key)

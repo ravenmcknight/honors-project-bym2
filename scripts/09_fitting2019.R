@@ -1,4 +1,5 @@
 ## Goal: fit models!
+
 ## packages -----------------------------------------------
 packages <- c('rstan', 'dplyr', 'data.table', 'shinystan', 'ggplot2',
               'bayesplot', 'tigris', 'spdep', 'sf')

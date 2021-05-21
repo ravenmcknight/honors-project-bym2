@@ -43,32 +43,7 @@ dataset[, `:=` (i.summary_est = NULL, i.summary_est.1 = NULL, i.genz = NULL,
                 i.millenial = NULL, i.genx = NULL, i.boomer = NULL, i.under40 = NULL,
                 i.age18to34 = NULL)]
 
-dataset[, tract_GEOID := stringr::str_sub(GEOID, end = -2)]
-
-# only available at tract level
-tract_list <- paste0("data/covariates/tract/", list.files(path = "data/covariates/tract/", pattern = ".RDS"))
-
-for (file in tract_list){
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("tdataset")){
-    tdataset <- readRDS(file)
-  }
-  
-  # if the merged dataset does exist, merge to it
-  if (exists("tdataset")){
-    temp_tdataset <- readRDS(file)
-    tdataset <- temp_tdataset[tdataset, on = .(year, GEOID)]
-    rm(temp_tdataset)
-  }
-  
-}
-
-setDT(tdataset)
-tdataset[, `:=` (i.perc_transit_comm = NULL, i.perc_wfh = NULL)]
-setnames(tdataset, "GEOID", "tract_GEOID")
-
-cov <- tdataset[dataset, on = .(tract_GEOID, year)]
+cov <- dataset[, tract_GEOID := stringr::str_sub(GEOID, end = -2)]
 
 ## geographic info ------------------------------
 
@@ -86,15 +61,16 @@ cov[, c('STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NAMELSAD', 'MTFCC', 'FUNC
 setnames(cov, "i.summary_est", "veh_summary_val")
 
 # save un-standardized
+### NOTE: from year on out, use un-standardized for visualization and 
+### standardized for modeling
 saveRDS(cov, 'data/covariates/cleaned/all_covariates.RDS')
 
 ## standardize ------------------------
 
 # scale
-scaled_dat <- lapply(cov[, -c('GEOID', 'year', 'tract_GEOID')], scale)
+scaled_dat <- lapply(cov[, -c('GEOID', 'year')], scale)
 scaled_dat$GEOID <- cov$GEOID
 scaled_dat$year <- cov$year
-scaled_dat$tract_GEOID <- cov$tract_GEOID
 scaled_dat <- as.data.table(scaled_dat)
 
 saveRDS(scaled_dat, 'data/covariates/cleaned/all_covariates_scaled.RDS')

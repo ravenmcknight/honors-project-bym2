@@ -41,6 +41,8 @@ lehd<- c("workers", "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_
 lehd2 <- c("workers", "emp_density", "w_total_jobs_here", "w_perc_jobs_white", "w_perc_jobs_men",
           "w_perc_jobs_no_college", "w_perc_jobs_less40", "w_perc_jobs_age_less30")
 
+#### NOTE: this is a little tricky depending on the years of acs vs lodes data you have
+#### this has to be modified whenever you change years
 emp <- cov[year == "3", ..lehd]
 notemp <- cov[year == "4", !..lehd2]
 
@@ -54,6 +56,8 @@ saveRDS(mod_dat, 'data/covid/modeling-dat/mod_dat.RDS')
 cov <- readRDS('data/covariates/cleaned/all_covariates_ind.RDS')
 setDT(cov)
 
+#### NOTE: this is a little tricky depending on the years of acs vs lodes data you have
+#### this has to be modified whenever you change years
 emp <- cov[year == "3", ..lehd]
 notemp <- cov[year == "4", !..lehd2]
 
